@@ -3,82 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inteligência Corporativa | Consulta de CNPJ</title>
-    <!-- Bootstrap 5 -->
+    <title>Firjan | Consulta de CNPJ</title>
+    <!-- Bootstrap 5 para estrutura responsiva -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
+    <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS -->
+    <!-- SheetJS para Exportação Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --blue-dark: #002776;
-            --blue-medium: #003876;
-            --blue-light: #004b87;
+            /* Alterado para tons de Azul Caneta */
+            --firjan-blue-dark: #001a4d;
+            --firjan-blue-medium: #003399; 
+            --firjan-blue-light: #0052cc;
             --industry-green: #28a745;
             --bg-light: #f8f9fa;
         }
 
-        body { background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; }
-        .navbar { background-color: var(--blue-dark); border-bottom: 4px solid var(--blue-light); }
-        .navbar-brand { font-weight: 700; color: white !important; }
-        .container-main { margin-top: 40px; margin-bottom: 60px; }
-        .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
-        .card-header { background-color: white; border-bottom: 2px solid var(--bg-light); font-weight: 600; color: var(--blue-medium); }
-        .btn-corporate { background-color: var(--blue-medium); color: white; border: none; transition: all 0.3s; font-weight: 600; }
-        .btn-corporate:hover { background-color: var(--blue-dark); color: white; }
-        .badge-industry { background-color: var(--industry-green); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; }
-        .cnae-list { font-size: 0.8rem; max-height: 150px; overflow-y: auto; background: #fff; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
-        .row-industry { background-color: rgba(40, 167, 69, 0.05) !important; }
-        #progressContainer, #singleSummary { display: none; }
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        .navbar {
+            background-color: var(--firjan-blue-dark);
+            border-bottom: 4px solid var(--firjan-blue-light);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: white !important;
+        }
+
+        .container-main {
+            margin-top: 40px;
+            margin-bottom: 60px;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--bg-light);
+            font-weight: 600;
+            color: var(--firjan-blue-medium);
+        }
+
+        .btn-firjan {
+            background-color: var(--firjan-blue-medium);
+            color: white;
+            border: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-firjan:hover {
+            background-color: var(--firjan-blue-dark);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .badge-industry {
+            background-color: var(--industry-green);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .cnae-list {
+            font-size: 0.85rem;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #fff;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .table-container {
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table thead {
+            background-color: var(--firjan-blue-medium);
+            color: white;
+        }
+
+        .row-industry {
+            background-color: rgba(40, 167, 69, 0.05) !important;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--firjan-blue-medium);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        #progressContainer {
+            display: none;
+        }
+
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .container-main { margin-top: 0; }
+            .col-lg-8 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+            .table-container { box-shadow: none; border: 1px solid #ddd; }
+            .table th { background-color: var(--firjan-blue-medium) !important; color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
+            .badge-industry { background-color: var(--industry-green) !important; color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
+        }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-dark shadow-sm no-print">
     <div class="container">
-        <a class="navbar-brand" href="#"><i class="fa-solid fa-building-columns me-2"></i> Inteligência Corporativa</a>
+        <a class="navbar-brand" href="#">
+            <i class="fa-solid fa-chart-line me-2"></i> FIRJAN | Inteligência Corporativa
+        </a>
     </div>
 </nav>
 
 <div class="container container-main">
     <div class="row">
+        <!-- Coluna de Entrada (Oculta na impressão) -->
         <div class="col-lg-4 no-print">
             <div class="card mb-4">
-                <div class="card-header"><i class="fa-solid fa-list-check me-2"></i>Entrada de CNPJs</div>
+                <div class="card-header"><i class="fa-solid fa-magnifying-glass me-2"></i>Consulta de CNPJs</div>
                 <div class="card-body">
-                    <textarea id="cnpjInput" class="form-control mb-3" rows="8" placeholder="00.000.000/0001-00"></textarea>
-                    <button id="btnProcessar" class="btn btn-corporate w-100 py-2 mb-3"><i class="fa-solid fa-gear me-2"></i>Processar Consulta</button>
+                    <p class="small text-muted mb-2">Insira os CNPJs (um por linha ou separados por vírgula).</p>
+                    <textarea id="cnpjInput" class="form-control mb-3" rows="8" placeholder="00.000.000/0001-00&#10;12345678000199"></textarea>
+                    
+                    <button id="btnProcessar" class="btn btn-firjan w-100 py-2 mb-3">
+                        <i class="fa-solid fa-gear me-2"></i>Iniciar Consulta
+                    </button>
+
                     <hr>
+                    <p class="small fw-bold text-secondary mb-2">Ações de Exportação</p>
                     <div class="d-grid gap-2">
-                        <button id="btnExportar" class="btn btn-success btn-sm"><i class="fa-solid fa-file-excel me-2"></i>Exportar Excel</button>
+                        <button id="btnExportar" class="btn btn-success btn-sm"><i class="fa-solid fa-file-excel me-2"></i>Exportar Excel (.xlsx)</button>
                         <button id="btnCopiar" class="btn btn-secondary btn-sm"><i class="fa-solid fa-copy me-2"></i>Copiar Tabela</button>
+                        <button id="btnImprimir" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-print me-2"></i>Imprimir / PDF</button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Coluna de Resultados -->
         <div class="col-lg-8">
             <div id="progressContainer" class="card mb-3 p-3 no-print">
-                <div class="progress" style="height: 10px;"><div id="progressBar" class="progress-bar bg-primary" style="width: 0%"></div></div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span id="progressText" class="fw-bold text-primary small">Processando...</span>
+                    <span id="progressCount" class="small fw-bold">0/0</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                </div>
             </div>
 
-            <div id="singleSummary" class="card mb-3 p-4 border-start border-primary border-5">
-                <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-circle-info me-2"></i>Resumo da Empresa</h5>
-                <div id="singleContent"></div>
-            </div>
-
-            <div class="table-container shadow-sm" id="tableWrapper">
+            <div class="table-container shadow-sm">
                 <table class="table table-hover mb-0" id="resultTable">
                     <thead>
                         <tr>
-                            <th>Resumo</th>
-                            <th>Porte</th>
-                            <th>Perfil</th>
-                            <th>CNAEs Detalhados</th>
+                            <th style="width: 45%">Dados da Empresa</th>
+                            <th style="width: 15%">Porte / Perfil</th>
+                            <th style="width: 40%">CNAEs Detalhados</th>
                         </tr>
                     </thead>
-                    <tbody id="resultBody"></tbody>
+                    <tbody id="resultBody">
+                        <tr>
+                            <td colspan="3" class="text-center py-5 text-muted small">
+                                <i class="fa-solid fa-magnifying-glass fs-3 mb-2 d-block text-black-50"></i>
+                                Nenhum dado processado ainda.<br>Insira os CNPJs ao lado e clique em "Iniciar Consulta".
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -86,99 +197,253 @@
 </div>
 
 <script>
-    const cnaesIndustria = ["0500-3/01", "0600-0/01", "1011-2/01", "1012-1/01", "1020-1/01", "1031-7/00", "1032-5/01", "1033-3/01", "1041-4/00", "1042-2/00", "1043-1/00", "1051-1/00", "1052-0/00", "1053-8/00", "1061-9/01", "1061-9/02", "1062-7/00", "1063-5/00", "1064-3/00", "1065-1/01", "1065-1/02", "1065-1/03", "1066-0/00", "1069-4/00", "1071-6/00", "1072-4/01", "1072-4/02", "1081-3/01", "1081-3/02", "1082-1/00", "1091-1/00", "1091-1/01", "1091-1/02", "1092-9/00", "1093-7/01", "1093-7/02", "1094-5/00", "1095-3/00", "1096-1/00", "1099-6/01", "1099-6/02", "1099-6/03", "1099-6/04", "1099-6/05", "1099-6/06", "1099-6/07", "1099-6/99", "1111-9/01", "1111-9/02", "1112-7/00", "1113-5/01", "1113-5/02", "1121-6/00", "1122-4/01", "1122-4/02", "1122-4/03", "1122-4/04", "1122-4/99", "1210-7/00", "1220-4/01", "1220-4/02", "1220-4/03", "1220-4/99", "1311-1/00", "1312-0/00", "1313-8/00", "1314-6/00", "1321-9/00", "1322-7/00", "1323-5/00", "1330-8/00", "1340-5/01", "1340-5/02", "1340-5/99", "1351-1/00", "1352-9/00", "1353-7/00", "1354-5/00", "1359-6/00", "1411-8/01", "1411-8/02", "1412-6/01", "1412-6/02", "1412-6/03", "1413-4/01", "1413-4/02", "1413-4/03", "1414-2/00", "1421-5/00", "1422-3/00", "1510-6/00", "1521-1/00", "1529-7/00", "1531-9/01", "1531-9/02", "1532-7/00", "1533-5/00", "1539-4/00", "1540-8/00", "1610-2/01", "1610-2/02", "1610-2/03", "1610-2/04", "1610-2/05", "1621-8/00", "1622-6/01", "1622-6/02", "1622-6/99", "1623-4/00", "1629-3/01", "1629-3/02", "1710-9/00", "1721-4/00", "1722-2/00", "1731-1/00", "1732-0/00", "1733-8/00", "1741-9/01", "1741-9/02", "1742-7/01", "1742-7/02", "1742-7/99", "1749-4/00", "1811-3/01", "1811-3/02", "1812-1/00", "1813-0/01", "1813-0/99", "1821-1/00", "1822-9/00", "1822-9/01", "1822-9/99", "1830-0/01", "1830-0/02", "1830-0/03", "1910-1/00", "1921-7/00", "1922-5/01", "1922-5/02", "1922-5/99", "1931-4/00", "1932-2/00", "2011-8/00", "2012-6/00", "2013-4/00", "2013-4/01", "2013-4/02", "2014-2/00", "2019-3/01", "2019-3/99", "2021-5/00", "2022-3/00", "2029-1/00", "2031-2/00", "2032-1/00", "2033-9/00", "2040-1/00", "2051-7/00", "2052-5/00", "2061-4/00", "2062-2/00", "2063-1/00", "2071-1/00", "2072-0/00", "2073-8/00", "2091-6/00", "2092-4/01", "2092-4/02", "2092-4/03", "2093-2/00", "2094-1/00", "2099-1/01", "2099-1/99", "2110-6/00", "2121-1/01", "2121-1/02", "2121-1/03", "2122-0/00", "2123-8/00", "2211-1/00", "2212-9/00", "2219-6/00", "2221-8/00", "2222-6/00", "2223-4/00", "2229-3/01", "2229-3/02", "2229-3/03", "2229-3/99", "2311-7/00", "2312-5/00", "2319-2/00", "2320-6/00", "2330-3/01", "2330-3/02", "2330-3/03", "2330-3/04", "2330-3/05", "2330-3/99", "2341-9/00", "2342-7/01", "2342-7/02", "2349-4/01", "2349-4/99", "2391-5/01", "2391-5/02", "2391-5/03", "2392-3/00", "2399-1/01", "2399-1/02", "2399-1/99", "2411-3/00", "2412-1/00", "2421-1/00", "2422-9/01", "2422-9/02", "2423-7/01", "2423-7/02", "2424-5/01", "2424-5/02", "2431-8/00", "2439-3/00", "2441-5/01", "2441-5/02", "2442-3/00", "2443-1/00", "2449-1/01", "2449-1/02", "2449-1/03", "2449-1/99", "2451-2/00", "2452-1/00", "2511-0/00", "2512-8/00", "2513-6/00", "2521-7/00", "2522-5/00", "2531-4/01", "2531-4/02", "2532-2/01", "2532-2/02", "2539-0/00", "2539-0/01", "2539-0/02", "2541-1/00", "2542-0/00", "2543-8/00", "2550-1/01", "2550-1/02", "2591-8/00", "2592-6/01", "2592-6/02", "2593-4/00", "2599-3/01", "2599-3/02", "2599-3/99", "2610-8/00", "2621-3/00", "2622-1/00", "2631-1/00", "2632-9/00", "2640-0/00", "2651-5/00", "2652-3/00", "2660-4/00", "2670-1/01", "2670-1/02", "2680-9/00", "2710-4/01", "2710-4/02", "2710-4/03", "2721-0/00", "2722-8/01", "2722-8/02", "2731-7/00", "2732-5/00", "2733-3/00", "2740-6/01", "2740-6/02", "2751-1/00", "2759-7/01", "2759-7/99", "2790-2/01", "2790-2/02", "2790-2/99", "2811-9/00", "2812-7/00", "2813-5/00", "2814-3/01", "2814-3/02", "2815-1/01", "2815-1/02", "2821-6/01", "2821-6/02", "2822-4/01", "2822-4/02", "2823-2/00", "2824-1/01", "2824-1/02", "2825-9/00", "2829-1/01", "2829-1/99", "2831-3/00", "2832-1/00", "2833-0/00", "2840-2/00", "2851-8/00", "2852-6/00", "2853-4/00", "2854-2/00", "2861-5/00", "2862-3/00", "2863-1/00", "2864-0/00", "2865-8/00", "2866-6/00", "2869-1/00", "2910-7/01", "2910-7/02", "2910-7/03", "2920-4/01", "2920-4/02", "2930-1/01", "2930-1/02", "2930-1/03", "2941-7/00", "2942-5/00", "2943-3/00", "2944-1/00", "2945-0/00", "2949-2/01", "2949-2/99", "2950-6/00", "3011-3/01", "3011-3/02", "3012-1/00", "3031-8/00", "3032-6/00", "3041-5/00", "3042-3/00", "3050-4/00", "3091-1/00", "3091-1/01", "3091-1/02", "3092-0/00", "3099-7/00", "3101-2/00", "3102-1/00", "3103-9/00", "3104-7/00", "3211-6/01", "3211-6/02", "3211-6/03", "3212-4/00", "3220-5/00", "3230-2/00", "3240-0/01", "3240-0/02", "3240-0/03", "3240-0/99", "3250-7/01", "3250-7/02", "3250-7/03", "3250-7/04", "3250-7/05", "3250-7/06", "3250-7/07", "3250-7/08", "3250-7/09", "3291-4/00", "3292-2/01", "3292-2/02", "3299-0/01", "3299-0/02", "3299-0/03", "3299-0/04", "3299-0/05", "3299-0/06", "3299-0/99", "3311-2/00", "3312-1/02", "3312-1/03", "3312-1/04", "3313-9/01", "3313-9/02", "3313-9/99", "3314-7/01", "3314-7/02", "3314-7/03", "3314-7/04", "3314-7/05", "3314-7/06", "3314-7/07", "3314-7/08", "3314-7/09", "3314-7/10", "3314-7/11", "3314-7/12", "3314-7/13", "3314-7/14", "3314-7/15", "3314-7/16", "3314-7/17", "3314-7/18", "3314-7/19", "3314-7/20", "3314-7/21", "3314-7/22", "3314-7/99", "3315-5/00", "3316-3/01", "3316-3/02", "3317-1/01", "3317-1/02", "3319-8/00", "3321-0/00", "3329-5/01", "3329-5/99", "4110-7/00", "4120-4/00", "4211-1/01", "4211-1/02", "4212-0/00", "4213-8/00", "4221-9/01", "4221-9/02", "4221-9/03", "4221-9/04", "4221-9/05", "4222-7/01", "4222-7/02", "4223-5/00", "4291-0/00", "4292-8/01", "4292-8/02", "4299-5/01", "4299-5/99", "4311-8/01", "4311-8/02", "4312-6/00", "4313-4/00", "4319-3/00", "4321-5/00", "4322-3/01", "4322-3/02", "4322-3/03", "4329-1/01", "4329-1/02", "4329-1/03", "4329-1/04", "4329-1/05", "4329-1/99", "4330-4/01", "4330-4/02", "4330-4/03", "4330-4/04", "4330-4/05", "4330-4/99", "4391-6/00", "4399-1/01", "4399-1/02", "4399-1/03", "4399-1/04", "4399-1/05", "4399-1/99"
+    // Base de Dados CNAEs Indústria (Injetada)
+    const cnaesIndustria = [
+        "0500-3/01", "0500-3/02", "0600-0/01", "0600-0/02", "0600-0/03", "0710-3/01", "0710-3/02", 
+        "0721-9/01", "0721-9/02", "0722-7/01", "0722-7/02", "0723-5/01", "0723-5/02", "0724-3/01", 
+        "0724-3/02", "0725-1/00", "0729-4/01", "0729-4/02", "0729-4/03", "0729-4/04", "0729-4/05", 
+        "0810-0/01", "0810-0/02", "0810-0/03", "0810-0/04", "0810-0/05", "0810-0/06", "0810-0/07", 
+        "0810-0/08", "0810-0/09", "0810-0/10", "0810-0/99", "0891-6/00", "0892-4/01", "0892-4/02", 
+        "0892-4/03", "0893-2/00", "0899-1/01", "0899-1/02", "0899-1/03", "0899-1/99", "0910-6/00", 
+        "0990-4/01", "0990-4/02", "0990-4/03", "1011-2/01", "1011-2/02", "1011-2/03", "1011-2/04", 
+        "1011-2/05", "1012-1/01", "1012-1/02", "1012-1/03", "1012-1/04", "1013-9/01", "1013-9/02", 
+        "1020-1/01", "1020-1/02", "1031-7/00", "1032-5/01", "1032-5/99", "1033-3/01", "1033-3/02", 
+        "1041-4/00", "1042-2/00", "1043-1/00", "1051-1/00", "1052-0/00", "1053-8/00", "1061-9/01", 
+        "1061-9/02", "1062-7/00", "1063-5/00", "1064-3/00", "1065-1/01", "1065-1/02", "1065-1/03", 
+        "1066-0/00", "1069-4/00", "1071-6/00", "1072-4/01", "1072-4/02", "1081-3/01", "1081-3/02", 
+        "1082-1/00", "1091-1/00", "1091-1/01", "1091-1/02", "1092-9/00", "1093-7/01", "1093-7/02", 
+        "1094-5/00", "1095-3/00", "1096-1/00", "1099-6/01", "1099-6/02", "1099-6/03", "1099-6/04", 
+        "1099-6/05", "1099-6/06", "1099-6/07", "1099-6/99", "1111-9/01", "1111-9/02", "1112-7/00", 
+        "1113-5/01", "1113-5/02", "1121-6/00", "1122-4/01", "1122-4/02", "1122-4/03", "1122-4/04", 
+        "1122-4/99", "1210-7/00", "1220-4/01", "1220-4/02", "1220-4/03", "1220-4/99", "1311-1/00", 
+        "1312-0/00", "1313-8/00", "1314-6/00", "1321-9/00", "1322-7/00", "1323-5/00", "1330-8/00", 
+        "1340-5/01", "1340-5/02", "1340-5/99", "1351-1/00", "1352-9/00", "1353-7/00", "1354-5/00", 
+        "1359-6/00", "1411-8/01", "1411-8/02", "1412-6/01", "1412-6/02", "1412-6/03", "1413-4/01", 
+        "1413-4/02", "1413-4/03", "1414-2/00", "1421-5/00", "1422-3/00", "1510-6/00", "1521-1/00", 
+        "1529-7/00", "1531-9/01", "1531-9/02", "1532-7/00", "1533-5/00", "1539-4/00", "1540-8/00", 
+        "1610-2/01", "1610-2/02", "1610-2/03", "1610-2/04", "1610-2/05", "1621-8/00", "1622-6/01", 
+        "1622-6/02", "1622-6/99", "1623-4/00", "1629-3/01", "1629-3/02", "1710-9/00", "1721-4/00", 
+        "1722-2/00", "1731-1/00", "1732-0/00", "1733-8/00", "1741-9/01", "1741-9/02", "1742-7/01", 
+        "1742-7/02", "1742-7/99", "1749-4/00", "1811-3/01", "1811-3/02", "1812-1/00", "1813-0/01", 
+        "1813-0/99", "1821-1/00", "1822-9/00", "1822-9/01", "1822-9/99", "1830-0/01", "1830-0/02", 
+        "1830-0/03", "1910-1/00", "1921-7/00", "1922-5/01", "1922-5/02", "1922-5/99", "1931-4/00", 
+        "1932-2/00", "2011-8/00", "2012-6/00", "2013-4/00", "2013-4/01", "2013-4/02", "2014-2/00", 
+        "2019-3/01", "2019-3/99", "2021-5/00", "2022-3/00", "2029-1/00", "2031-2/00", "2032-1/00", 
+        "2033-9/00", "2040-1/00", "2051-7/00", "2052-5/00", "2061-4/00", "2062-2/00", "2063-1/00", 
+        "2071-1/00", "2072-0/00", "2073-8/00", "2091-6/00", "2092-4/01", "2092-4/02", "2092-4/03", 
+        "2093-2/00", "2094-1/00", "2099-1/01", "2099-1/99", "2110-6/00", "2121-1/01", "2121-1/02", 
+        "2121-1/03", "2122-0/00", "2123-8/00", "2211-1/00", "2212-9/00", "2219-6/00", "2221-8/00", 
+        "2222-6/00", "2223-4/00", "2229-3/01", "2229-3/02", "2229-3/03", "2229-3/99", "2311-7/00", 
+        "2312-5/00", "2319-2/00", "2320-6/00", "2330-3/01", "2330-3/02", "2330-3/03", "2330-3/04", 
+        "2330-3/05", "2330-3/99", "2341-9/00", "2342-7/01", "2342-7/02", "2349-4/01", "2349-4/99", 
+        "2391-5/01", "2391-5/02", "2391-5/03", "2392-3/00", "2399-1/01", "2399-1/02", "2399-1/99", 
+        "2411-3/00", "2412-1/00", "2421-1/00", "2422-9/01", "2422-9/02", "2423-7/01", "2423-7/02", 
+        "2424-5/01", "2424-5/02", "2431-8/00", "2439-3/00", "2441-5/01", "2441-5/02", "2442-3/00", 
+        "2443-1/00", "2449-1/01", "2449-1/02", "2449-1/03", "2449-1/99", "2451-2/00", "2452-1/00", 
+        "2511-0/00", "2512-8/00", "2513-6/00", "2521-7/00", "2522-5/00", "2531-4/01", "2531-4/02", 
+        "2532-2/01", "2532-2/02", "2539-0/00", "2539-0/01", "2539-0/02", "2541-1/00", "2542-0/00", 
+        "2543-8/00", "2550-1/01", "2550-1/02", "2591-8/00", "2592-6/01", "2592-6/02", "2593-4/00", 
+        "2599-3/01", "2599-3/02", "2599-3/99", "2610-8/00", "2621-3/00", "2622-1/00", "2631-1/00", 
+        "2632-9/00", "2640-0/00", "2651-5/00", "2652-3/00", "2660-4/00", "2670-1/01", "2670-1/02", 
+        "2680-9/00", "2710-4/01", "2710-4/02", "2710-4/03", "2721-0/00", "2722-8/01", "2722-8/02", 
+        "2731-7/00", "2732-5/00", "2733-3/00", "2740-6/01", "2740-6/02", "2751-1/00", "2759-7/01", 
+        "2759-7/99", "2790-2/01", "2790-2/02", "2790-2/99", "2811-9/00", "2812-7/00", "2813-5/00", 
+        "2814-3/01", "2814-3/02", "2815-1/01", "2815-1/02", "2821-6/01", "2821-6/02", "2822-4/01", 
+        "2822-4/02", "2823-2/00", "2824-1/01", "2824-1/02", "2825-9/00", "2829-1/01", "2829-1/99", 
+        "2831-3/00", "2832-1/00", "2833-0/00", "2840-2/00", "2851-8/00", "2852-6/00", "2853-4/00", 
+        "2854-2/00", "2861-5/00", "2862-3/00", "2863-1/00", "2864-0/00", "2865-8/00", "2866-6/00", 
+        "2869-1/00", "2910-7/01", "2910-7/02", "2910-7/03", "2920-4/01", "2920-4/02", "2930-1/01", 
+        "2930-1/02", "2930-1/03", "2941-7/00", "2942-5/00", "2943-3/00", "2944-1/00", "2945-0/00", 
+        "2949-2/01", "2949-2/99", "2950-6/00", "3011-3/01", "3011-3/02", "3012-1/00", "3031-8/00", 
+        "3032-6/00", "3041-5/00", "3042-3/00", "3050-4/00", "3091-1/00", "3091-1/01", "3091-1/02", 
+        "3092-0/00", "3099-7/00", "3101-2/00", "3102-1/00", "3103-9/00", "3104-7/00", "3211-6/01", 
+        "3211-6/02", "3211-6/03", "3212-4/00", "3220-5/00", "3230-2/00", "3240-0/01", "3240-0/02", 
+        "3240-0/03", "3240-0/99", "3250-7/01", "3250-7/02", "3250-7/03", "3250-7/04", "3250-7/05", 
+        "3250-7/06", "3250-7/07", "3250-7/08", "3250-7/09", "3291-4/00", "3292-2/01", "3292-2/02", 
+        "3299-0/01", "3299-0/02", "3299-0/03", "3299-0/04", "3299-0/05", "3299-0/06", "3299-0/99", 
+        "3311-2/00", "3312-1/02", "3312-1/03", "3312-1/04", "3313-9/01", "3313-9/02", "3313-9/99", 
+        "3314-7/01", "3314-7/02", "3314-7/03", "3314-7/04", "3314-7/05", "3314-7/06", "3314-7/07", 
+        "3314-7/08", "3314-7/09", "3314-7/10", "3314-7/11", "3314-7/12", "3314-7/13", "3314-7/14", 
+        "3314-7/15", "3314-7/16", "3314-7/17", "3314-7/18", "3314-7/19", "3314-7/20", "3314-7/21", 
+        "3314-7/22", "3314-7/99", "3315-5/00", "3316-3/01", "3316-3/02", "3317-1/01", "3317-1/02", 
+        "3319-8/00", "3321-0/00", "3329-5/01", "3329-5/99", "4110-7/00", "4120-4/00", "4211-1/01", 
+        "4211-1/02", "4212-0/00", "4213-8/00", "4221-9/01", "4221-9/02", "4221-9/03", "4221-9/04", 
+        "4221-9/05", "4222-7/01", "4222-7/02", "4223-5/00", "4291-0/00", "4292-8/01", "4292-8/02", 
+        "4299-5/01", "4299-5/99", "4311-8/01", "4311-8/02", "4312-6/00", "4313-4/00", "4319-3/00", 
+        "4321-5/00", "4322-3/01", "4322-3/02", "4322-3/03", "4329-1/01", "4329-1/02", "4329-1/03", 
+        "4329-1/04", "4329-1/05", "4329-1/99", "4330-4/01", "4330-4/02", "4330-4/03", "4330-4/04", 
+        "4330-4/05", "4330-4/99", "4391-6/00", "4399-1/01", "4399-1/02", "4399-1/03", "4399-1/04", 
+        "4399-1/05", "4399-1/99"
     ];
 
     let arrayResultadosGlobais = [];
+
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     const btnProcessar = document.getElementById('btnProcessar');
     const resultBody = document.getElementById('resultBody');
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const progressCount = document.getElementById('progressCount');
     const progressText = document.getElementById('progressText');
-    const btnExportar = document.getElementById('btnExportar');
-    const btnCopiar = document.getElementById('btnCopiar');
-    const btnImprimir = document.getElementById('btnImprimir');
+
     const cleanNumber = (val) => val ? String(val).replace(/\D/g, '') : "";
     const industriaSet = new Set(cnaesIndustria.map(cleanNumber));
-    const singleSummary = document.getElementById('singleSummary');
-    const singleContent = document.getElementById('singleContent');
-    const tableWrapper = document.getElementById('tableWrapper');
 
     btnProcessar.addEventListener('click', async () => {
         const input = document.getElementById('cnpjInput').value;
-        const cnpjs = input.split(/[\n,]+/).map(c => cleanNumber(c.trim())).filter(c => c.length === 14);
+        const cnpjsBrutos = input.split(/[\n,]+/).map(c => cleanNumber(c.trim()));
+        const cnpjs = cnpjsBrutos.filter(c => c.length === 14);
 
-        if (cnpjs.length === 0) return alert("Nenhum CNPJ válido encontrado.");
+        if (cnpjs.length === 0) {
+            alert("Nenhum CNPJ válido foi encontrado.");
+            return;
+        }
 
         resultBody.innerHTML = '';
         arrayResultadosGlobais = [];
-        singleSummary.style.display = 'none';
-        tableWrapper.style.display = 'block';
         progressContainer.style.display = 'block';
         btnProcessar.disabled = true;
 
         for (let i = 0; i < cnpjs.length; i++) {
             const cnpj = cnpjs[i];
             const cnpjFormatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-            progressBar.style.width = Math.round(((i + 1) / cnpjs.length) * 100) + '%';
+            
+            const percent = Math.round(((i + 1) / cnpjs.length) * 100);
+            progressBar.style.width = percent + '%';
             progressCount.innerText = `${i + 1}/${cnpjs.length}`;
             progressText.innerText = `Consultando: ${cnpjFormatado}`;
 
             try {
-                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-                if (!response.ok) throw new Error();
+                // Utilizando v2 para obter dados de QSA e Porte mais precisos se disponíveis
+                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v2/${cnpj}`);
+                
+                if (!response.ok) throw new Error("CNPJ não encontrado");
+
                 const data = await response.json();
                 
+                const allCnaes = [];
+                let isIndustry = false;
+
+                if (data.cnae_fiscal) {
+                    const cnaeP = String(data.cnae_fiscal).padStart(7, '0');
+                    allCnaes.push({ code: cnaeP, desc: data.cnae_fiscal_descricao || "Sem descrição", type: 'Principal' });
+                    if (industriaSet.has(cleanNumber(cnaeP))) isIndustry = true;
+                }
+                
+                if (data.cnaes_secundarios) {
+                    data.cnaes_secundarios.forEach(s => {
+                        const cnaeS = String(s.codigo).padStart(7, '0');
+                        allCnaes.push({ code: cnaeS, desc: s.descricao || "Sem descrição", type: 'Secundário' });
+                        if (industriaSet.has(cleanNumber(cnaeS))) isIndustry = true;
+                    });
+                }
+
                 const empresa = {
                     cnpj: cnpjFormatado,
                     razaoSocial: data.razao_social || 'N/A',
-                    nomeFantasia: data.nome_fantasia || data.razao_social || 'N/A',
+                    nomeFantasia: data.nome_fantasia || 'N/A',
                     situacao: data.descricao_situacao_cadastral || 'N/A',
                     municipio: data.municipio || 'N/A',
                     uf: data.uf || 'N/A',
-                    porte: data.descricao_porte || 'Não informado',
-                    isIndustry: [data.cnae_fiscal, ...(data.cnaes_secundarios || []).map(s => s.codigo)].some(c => industriaSet.has(cleanNumber(c))),
-                    cnaes: [{code: data.cnae_fiscal, desc: data.cnae_fiscal_descricao, type: 'Principal'}, ...(data.cnaes_secundarios || []).map(s => ({code: s.codigo, desc: s.descricao, type: 'Secundário'}))]
+                    fundacao: data.data_inicio_atividade || 'N/A',
+                    porte: data.porte || 'N/A',
+                    proprietarios: data.qsa ? data.qsa.map(p => p.nome_socio).join(', ') : 'Informação não disponível',
+                    isIndustry: isIndustry,
+                    cnaes: allCnaes
                 };
 
                 arrayResultadosGlobais.push(empresa);
-                if (cnpjs.length === 1) {
-                    renderSingle(empresa);
-                    tableWrapper.style.display = 'none';
-                } else {
-                    renderRow(empresa);
-                }
-            } catch { renderErrorRow(cnpjFormatado); }
-            if (i < cnpjs.length - 1) await sleep(1500);
+                renderRow(empresa);
+
+            } catch (error) {
+                renderErrorRow(cnpjFormatado, "Erro na consulta ou CNPJ inexistente.");
+            }
+
+            if (i < cnpjs.length - 1) await sleep(1000);
         }
-        progressText.innerText = "Concluído!";
+
+        progressText.innerText = "Consulta finalizada!";
         btnProcessar.disabled = false;
     });
-
-    function renderSingle(emp) {
-        singleSummary.style.display = 'block';
-        singleContent.innerHTML = `<p><strong>Razão Social:</strong> ${emp.razaoSocial} | <strong>Porte:</strong> ${emp.porte}</p>
-        <p><strong>Local:</strong> ${emp.municipio}/${emp.uf} | <strong>Perfil:</strong> ${emp.isIndustry ? 'Indústria' : 'Outros'}</p>
-        <p class="small text-muted">A empresa ${emp.razaoSocial} é classificada como ${emp.porte}. CNAE Principal: ${emp.cnaes[0].code} - ${emp.cnaes[0].desc}</p>`;
-    }
 
     function renderRow(emp) {
         const tr = document.createElement('tr');
         if (emp.isIndustry) tr.classList.add('row-industry');
-        tr.innerHTML = `<td><strong>${emp.razaoSocial}</strong><br><small>${emp.cnpj}</small></td>
-            <td>${emp.porte}</td>
-            <td>${emp.isIndustry ? '<span class="badge-industry">Indústria</span>' : 'Outros'}</td>
-            <td><div class="cnae-list">${emp.cnaes.map(c => `<div><strong>${c.code}</strong> - ${c.desc}</div>`).join('')}</div></td>`;
+
+        const cnaeHtml = emp.cnaes.map(c => `
+            <div class="mb-1 p-1 border-bottom">
+                <span class="badge ${c.type === 'Principal' ? 'bg-primary' : 'bg-secondary'}" style="font-size:0.65rem">${c.type}</span> 
+                <strong>${c.code}</strong> - <span class="text-muted" style="font-size:0.75rem">${c.desc}</span>
+            </div>
+        `).join('');
+
+        tr.innerHTML = `
+            <td>
+                <div class="fw-bold text-primary mb-1">${emp.cnpj}</div>
+                <div class="fw-bold small text-dark">${emp.razaoSocial}</div>
+                <div class="small text-muted mb-2">Fantasia: ${emp.nomeFantasia}</div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="info-label d-block">Fundação</span>
+                        <span class="small">${emp.fundacao}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="info-label d-block">Localização</span>
+                        <span class="small">${emp.municipio} - ${emp.uf}</span>
+                    </div>
+                    <div class="col-12 mt-1">
+                        <span class="info-label d-block">Proprietários / QSA</span>
+                        <span class="small text-truncate d-block" title="${emp.proprietarios}">${emp.proprietarios}</span>
+                    </div>
+                </div>
+            </td>
+            <td class="align-middle">
+                <div class="mb-2">
+                    <span class="info-label d-block">Porte</span>
+                    <span class="badge bg-white text-primary border border-primary small w-100">${emp.porte}</span>
+                </div>
+                <div>
+                    <span class="info-label d-block">Perfil</span>
+                    ${emp.isIndustry ? '<span class="badge-industry w-100 text-center"><i class="fa-solid fa-industry"></i> Indústria</span>' : '<span class="badge bg-light text-dark border small w-100 text-center">Outros</span>'}
+                </div>
+            </td>
+            <td>
+                <div class="cnae-list">${cnaeHtml}</div>
+            </td>
+        `;
         resultBody.appendChild(tr);
     }
 
-    function renderErrorRow(cnpj) {
+    function renderErrorRow(cnpjStr, msg) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="4" class="text-danger">Erro ao consultar ${cnpj}</td>`;
+        tr.innerHTML = `
+            <td class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i> ${cnpjStr}</td>
+            <td colspan="2" class="text-muted small fst-italic">${msg}</td>
+        `;
         resultBody.appendChild(tr);
     }
+
+    // Ações de Exportação
+    document.getElementById('btnExportar').addEventListener('click', () => {
+        if (arrayResultadosGlobais.length === 0) return alert('Sem dados.');
+        const worksheet = XLSX.utils.json_to_sheet(arrayResultadosGlobais.map(e => ({
+            "CNPJ": e.cnpj, "Razão Social": e.razaoSocial, "Porte": e.porte, "Fundação": e.fundacao, 
+            "Município": e.municipio, "UF": e.uf, "Indústria": e.isIndustry ? "Sim" : "Não", "Sócios": e.proprietarios
+        })));
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Consulta");
+        XLSX.writeFile(workbook, `Firjan_Inteligencia_Corporativa.xlsx`);
+    });
+
+    document.getElementById('btnCopiar').addEventListener('click', () => {
+        if (arrayResultadosGlobais.length === 0) return alert('Sem dados.');
+        let txt = arrayResultadosGlobais.map(e => `${e.cnpj}\t${e.razaoSocial}\t${e.porte}\t${e.fundacao}`).join('\n');
+        navigator.clipboard.writeText(txt).then(() => alert('Dados copiados!'));
+    });
+
+    document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+
 </script>
 </body>
 </html>
