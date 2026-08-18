@@ -1,4 +1,3 @@
-// js/utils.js
 export const Utils = {
     formatCNPJ(value) {
         if (!value) return '';
@@ -10,12 +9,10 @@ export const Utils = {
             .replace(/(\d{4})(\d)/, '$1-$2')
             .substr(0, 18);
     },
-
     cleanCNPJ(value) {
         if (!value) return '';
         return value.toString().replace(/\D/g, '');
     },
-
     isValidCNPJ(cnpj) {
         cnpj = this.cleanCNPJ(cnpj);
         if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
@@ -32,20 +29,17 @@ export const Utils = {
         if (resultado != digitos.charAt(1)) return false;
         return true;
     },
-
     formatDate(dateString) {
         if (!dateString) return '---';
         const parts = dateString.split('-');
         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
     },
-
+    normalizeCnae(code) {
+        if (!code) return '';
+        return code.toString().replace(/\D/g, '');
+    },
     escapeHtml(value) {
         if (value === null || value === undefined) return '';
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 };
