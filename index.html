@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema Avançado de Consulta de CNPJ e Classificação Industrial">
+    <title>Inteligência Corporativa | SCI</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6.4 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS Customizado -->
+    <link rel="stylesheet" href="./css/style.css">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --corporate-blue: #0a2540;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #334155; }
+        .navbar { background-color: var(--corporate-blue) !important; }
+        .card { border: none; border-radius: 12px; transition: transform 0.2s; }
+        .btn-group .btn { border-radius: 8px !important; transition: all 0.3s ease; }
+        .input-group-text { border-radius: 10px 0 0 10px; background: white; }
+        #cnpjInput { border-radius: 0 10px 10px 0; }
+        .badge-industrial-yes { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .badge-industrial-no { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .sticky-column { position: sticky; left: 0; background: white; z-index: 1; }
+        
+        /* Skeleton Loading para melhor UX */
+        .skeleton { height: 20px; background: #e2e8f0; border-radius: 4px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        @media print {
+            .print-hide { display: none !important; }
+            .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm print-hide mb-4">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="fa-solid fa-building-shield fs-3 me-2 text-info"></i>
+                <div>
+                    <span class="fw-bold d-block lh-1">Inteligência Corporativa</span>
+                    <small class="fw-light opacity-75" style="font-size: 0.7rem;">SISTEMA DE CLASSIFICAÇÃO INDUSTRIAL</small>
+                </div>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Seletor de Modo (Abas) -->
+        <div class="row mb-4 print-hide">
+            <div class="col-lg-8 mx-auto">
+                <div class="bg-white p-2 rounded-3 shadow-sm d-flex gap-2">
+                    <button type="button" class="btn btn-primary flex-fill py-2 fw-semibold" id="tabIndividual">
+                        <i class="fa-solid fa-magnifying-glass me-2"></i> Individual
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary flex-fill py-2 fw-semibold border-0" id="tabLote">
+                        <i class="fa-solid fa-list-check me-2"></i> Em Lote
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Pesquisa Individual -->
+        <div id="individualSection" class="fade-in">
+            <div class="card shadow-sm mb-4 print-hide">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3 small tracking-wider">Parâmetros de Pesquisa</h6>
+                    <div class="input-group input-group-lg mb-3">
+                        <span class="input-group-text border-end-0"><i class="fa-solid fa-id-card text-primary"></i></span>
+                        <input type="text" id="cnpjInput" class="form-control border-start-0 ps-0" placeholder="00.000.000/0001-00" maxlength="18">
+                        <button class="btn btn-primary px-5 fw-bold" id="btnConsultar">Consultar</button>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="checkAnaliseSecundarios" checked style="cursor: pointer;">
+                            <label class="form-check-label text-secondary small fw-medium" for="checkAnaliseSecundarios" style="cursor: pointer;">
+                                <i class="fa-solid fa-circle-nodes me-1"></i> Analisar CNAEs Secundárias
+                            </label>
+                        </div>
+                        <div id="historyContainer" class="d-flex align-items-center gap-2">
+                            <span class="text-muted small italic"><i class="fa-solid fa-clock-rotate-left me-1"></i> Recentes:</span>
+                            <div id="historyPills" class="d-flex gap-1">
+                                <!-- Pills via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="alertContainer" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- Indicador de Carregamento Otimizado -->
+            <div id="loadingIndicator" class="text-center my-5 d-none print-hide">
+                <div class="spinner-grow text-primary" role="status"></div>
+                <div class="mt-3 fw-medium text-secondary">Cruzando dados de inteligência industrial...</div>
+            </div>
+
+            <!-- Resultados da Consulta Individual -->
+            <div id="resultContainer" class="d-none">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3 print-hide">
+                    <h5 class="mb-0 fw-bold text-corporate"><i class="fa-solid fa-file-invoice me-2"></i>Relatório da Empresa</h5>
+                    <div class="btn-group shadow-sm">
+                        <button class="btn btn-white btn-sm border" id="btnCopiar" title="Copiar Dados"><i class="fa-regular fa-copy"></i></button>
+                        <button class="btn btn-white btn-sm border text-danger" id="btnPDF" title="Salvar PDF"><i class="fa-solid fa-file-pdf"></i></button>
+                        <button class="btn btn-white btn-sm border text-success" id="btnExcel" title="Exportar Excel"><i class="fa-solid fa-file-excel"></i></button>
+                        <button class="btn btn-white btn-sm border" id="btnImprimir" title="Imprimir"><i class="fa-solid fa-print"></i></button>
+                        <button class="btn btn-dark btn-sm" id="btnLimpar"><i class="fa-solid fa-eraser me-1"></i> Nova Consulta</button>
+                    </div>
+                </div>
+
+                <div id="fichaEmpresa">
+                    <!-- Resumo Executivo -->
+                    <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                            <span class="badge bg-light text-primary text-uppercase px-3 py-2 fw-bold" id="valCnpj"></span>
+                            <span id="badgeIndustrialHeader" class="badge fs-7 px-3 py-2"></span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row align-items-center mb-4">
+                                <div class="col-md-8">
+                                    <h3 class="fw-bold mb-1 text-dark" id="valRazaoSocial">---</h3>
+                                    <p class="text-muted mb-0" id="valNomeFantasia">---</p>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                    <div class="p-2 border rounded-3 bg-light">
+                                        <small class="text-muted d-block small">Perfil de Mercado</small>
+                                        <span id="valPerfil" class="fw-bold text-primary h5 mb-0">---</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-sm-6 col-lg-3">
+                                    <label class="text-muted small fw-bold text-uppercase d-block">Porte</label>
+                                    <span id="valPorte" class="fw-medium">---</span>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <label class="text-muted small fw-bold text-uppercase d-block">Localização</label>
+                                    <span id="valLocalizacao" class="fw-medium">---</span>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <label class="text-muted small fw-bold text-uppercase d-block">Situação</label>
+                                    <span id="valSituacao" class="fw-medium">---</span>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <label class="text-muted small fw-bold text-uppercase d-block">Abertura</label>
+                                    <span id="valAbertura" class="fw-medium">---</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-3 bg-light border-start border-4 border-primary" id="boxMotivacaoIndustrial">
+                                <h6 class="fw-bold small text-primary"><i class="fa-solid fa-microchip me-2"></i>ANÁLISE TÉCNICA INDUSTRIAL</h6>
+                                <p class="mb-0 text-dark small italic" id="textoMotivacaoIndustrial">Analise pendente...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CNAEs -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-list-ol me-2 text-primary"></i>Atividades Econômicas Detalhadas</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr class="small text-uppercase">
+                                            <th class="ps-4">Código</th>
+                                            <th>Descrição da Atividade</th>
+                                            <th>Vínculo</th>
+                                            <th class="text-center">Enquadramento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="listCnaeSecundarioTable" class="small">
+                                        <!-- JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Consulta em Lote -->
+        <div id="batchSection" class="d-none animate__animated animate__fadeIn">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">Processamento em Massa</h5>
+                            <p class="text-muted small">Cole sua lista de CNPJs (suporta vírgula, ponto ou quebra de linha).</p>
+                        </div>
+                        <i class="fa-solid fa-layer-group fs-2 text-light"></i>
+                    </div>
+                    <textarea id="batchInput" class="form-control font-monospace mb-3" rows="8" placeholder="Ex:&#10;00.000.000/0001-00&#10;11111111000111"></textarea>
+                    
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-primary px-4 fw-bold" id="btnProcessarLote">
+                            <i class="fa-solid fa-play me-2"></i>Iniciar Processamento
+                        </button>
+                        <button class="btn btn-success d-none fw-bold" id="btnExportarLoteExcel">
+                            <i class="fa-solid fa-file-export me-2"></i>Exportar Excel
+                        </button>
+                        <div id="batchProgress" class="ms-3 small fw-bold text-primary"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Resultados do Lote -->
+            <div id="batchResultContainer" class="card shadow-sm d-none border-0 overflow-hidden">
+                <div class="card-header bg-dark text-white py-3">
+                    <h6 class="mb-0 small text-uppercase fw-bold">Resultados Consolidados</h6>
+                </div>
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-sm table-striped table-hover align-middle mb-0" id="batchTable">
+                        <thead class="table-light sticky-top shadow-sm">
+                            <tr class="small text-uppercase">
+                                <th class="ps-3">CNPJ</th>
+                                <th>Razão Social</th>
+                                <th>Perfil</th>
+                                <th>Município/UF</th>
+                                <th class="text-center">Indústria?</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
