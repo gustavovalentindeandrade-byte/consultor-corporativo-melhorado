@@ -1,5 +1,5 @@
 import { ApiClient } from '../js/api.js';
-import { Utils } from '../js/utils.js'; // ISSO CORRIGE O ERRO DO PRINT
+import { Utils } from '../js/utils.js'; 
 import { CacheManager } from '../cache/cache.js';
 import { Empresa } from '../models/empresa.js';
 
@@ -25,7 +25,7 @@ export const CnpjService = {
                 }
             } catch (err) { continue; }
         }
-        throw new Error("CNPJ não encontrado nas bases oficiais.");
+        throw new Error("CNPJ não encontrado.");
     },
 
     _normalizeProviderResponse(p, raw) {
@@ -33,13 +33,8 @@ export const CnpjService = {
             return {
                 cnpj: raw.estabelecimento?.cnpj,
                 razao_social: raw.razao_social,
-                nome_fantasia: raw.estabelecimento?.nome_fantasia,
-                descricao_situacao_cadastral: raw.estabelecimento?.situacao_cadastral,
-                data_inicio_atividade: raw.estabelecimento?.inicio_atividade,
-                porte: raw.porte?.descricao,
                 cnae_fiscal: raw.estabelecimento?.atividade_principal?.id,
                 cnae_fiscal_descricao: raw.estabelecimento?.atividade_principal?.descricao,
-                cnaes_secundarios: raw.estabelecimento?.atividades_secundarias?.map(a => ({ codigo: a.id, descricao: a.descricao })),
                 municipio: raw.estabelecimento?.cidade?.nome,
                 uf: raw.estabelecimento?.estado?.sigla
             };
