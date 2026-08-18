@@ -1,7 +1,8 @@
 import { Utils } from './utils.js';
 import { UI } from './ui.js';
-import { CnpjService } from '../services/cnpjService.js';
-import { IndustrialService } from '../services/industrialService.js';
+// Nomes dos arquivos em minúsculo conforme você alterou:
+import { CnpjService } from '../services/cnpjservice.js';
+import { IndustrialService } from '../services/industrialservice.js';
 
 async function realizarConsulta() {
     const input = document.getElementById('cnpjInput');
@@ -12,6 +13,7 @@ async function realizarConsulta() {
         return;
     }
 
+    UI.clearAlert();
     UI.toggleLoading(true);
     UI.toggleResult(false);
 
@@ -21,7 +23,7 @@ async function realizarConsulta() {
         UI.renderFicha(empresa, analise);
         UI.toggleResult(true);
     } catch (error) {
-        UI.showAlert(error.message, "danger");
+        UI.showAlert(error.message || "Erro na consulta", "danger");
     } finally {
         UI.toggleLoading(false);
     }
