@@ -1,7 +1,9 @@
+// js/utils.js
 export const Utils = {
     formatCNPJ(value) {
         if (!value) return '';
-        return value.toString().replace(/\D/g, '')
+        const clean = value.toString().replace(/\D/g, '');
+        return clean
             .replace(/^(\d{2})(\d)/, '$1.$2')
             .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
             .replace(/\.(\d{3})(\d)/, '.$1/$2')
@@ -32,18 +34,11 @@ export const Utils = {
     },
 
     formatDate(dateString) {
-        if (!dateString) return 'Não informada';
+        if (!dateString) return '---';
         const parts = dateString.split('-');
         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
     },
 
-    normalizeCnae(code) {
-        if (!code) return '';
-        return code.toString().replace(/\D/g, '');
-    },
-
-    // Evita XSS ao injetar em innerHTML dados vindos de APIs externas ou do Supabase
-    // (razão social, descrições de CNAE, endereço etc. não são confiáveis por padrão).
     escapeHtml(value) {
         if (value === null || value === undefined) return '';
         return String(value)
