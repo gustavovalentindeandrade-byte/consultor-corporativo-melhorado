@@ -12,9 +12,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --blue-pen-dark: #002776;
-            --blue-pen-medium: #003876;
-            --blue-pen-light: #004b87;
+            --blue-dark: #002776;
+            --blue-medium: #003876;
+            --blue-light: #004b87;
             --industry-green: #28a745;
             --bg-light: #f8f9fa;
         }
@@ -26,8 +26,8 @@
         }
 
         .navbar {
-            background-color: var(--blue-pen-dark);
-            border-bottom: 4px solid var(--blue-pen-light);
+            background-color: var(--blue-dark);
+            border-bottom: 4px solid var(--blue-light);
         }
 
         .navbar-brand {
@@ -51,19 +51,19 @@
             background-color: white;
             border-bottom: 2px solid var(--bg-light);
             font-weight: 600;
-            color: var(--blue-pen-medium);
+            color: var(--blue-medium);
         }
 
-        .btn-pen {
-            background-color: var(--blue-pen-medium);
+        .btn-corporate {
+            background-color: var(--blue-medium);
             color: white;
             border: none;
             transition: all 0.3s;
             font-weight: 600;
         }
 
-        .btn-pen:hover {
-            background-color: var(--blue-pen-dark);
+        .btn-corporate:hover {
+            background-color: var(--blue-dark);
             color: white;
             transform: translateY(-1px);
         }
@@ -95,7 +95,7 @@
         }
 
         .table thead {
-            background-color: var(--blue-pen-medium);
+            background-color: var(--blue-medium);
             color: white;
         }
 
@@ -107,14 +107,13 @@
             display: none;
         }
 
-        /* Regras para Impressão / PDF */
         @media print {
             body { background: white; margin: 0; padding: 0; }
             .no-print { display: none !important; }
             .container-main { margin-top: 0; }
             .col-lg-8 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
             .table-container { box-shadow: none; border: 1px solid #ddd; }
-            .table th { background-color: var(--blue-pen-medium) !important; color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
+            .table th { background-color: var(--blue-medium) !important; color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
             .badge-industry { background-color: var(--industry-green) !important; color: white !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
         }
     </style>
@@ -139,7 +138,7 @@
                     <p class="small text-muted mb-2">Insira os CNPJs (um por linha ou separados por vírgula).</p>
                     <textarea id="cnpjInput" class="form-control mb-3" rows="8" placeholder="00.000.000/0001-00&#10;12345678000199"></textarea>
                     
-                    <button id="btnProcessar" class="btn btn-pen w-100 py-2 mb-3">
+                    <button id="btnProcessar" class="btn btn-corporate w-100 py-2 mb-3">
                         <i class="fa-solid fa-gear me-2"></i>Processar Consulta
                     </button>
 
@@ -269,22 +268,17 @@
     ];
 
     let arrayResultadosGlobais = [];
-
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
     const btnProcessar = document.getElementById('btnProcessar');
     const resultBody = document.getElementById('resultBody');
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const progressCount = document.getElementById('progressCount');
     const progressText = document.getElementById('progressText');
-
     const btnExportar = document.getElementById('btnExportar');
     const btnCopiar = document.getElementById('btnCopiar');
     const btnImprimir = document.getElementById('btnImprimir');
-
     const cleanNumber = (val) => val ? String(val).replace(/\D/g, '') : "";
-
     const industriaSet = new Set(cnaesIndustria.map(cleanNumber));
 
     btnProcessar.addEventListener('click', async () => {
@@ -298,7 +292,7 @@
         }
 
         resultBody.innerHTML = '';
-        arrayResultadosGlobais = []; 
+        arrayResultadosGlobais = [];
         progressContainer.style.display = 'block';
         btnProcessar.disabled = true;
 
@@ -316,7 +310,6 @@
                 if (!response.ok) throw new Error("CNPJ não encontrado");
 
                 const data = await response.json();
-                
                 const allCnaes = [];
                 let isIndustry = false;
 
@@ -383,7 +376,7 @@
             </td>
             <td>
                 <div class="cnae-list">${cnaeHtml}</div>
-                <small class="text-muted mt-1 d-block"><i class="fa-solid fa-tags me-1"></i> ${empresa.cnaes.length} CNAE(s)</small>
+                <small class="text-muted mt-1 d-block"><i class="fa-solid fa-tags me-1"></i> ${empresa.cnaes.length} CNAE(s) registrados</small>
             </td>
         `;
         resultBody.appendChild(tr);
@@ -391,32 +384,37 @@
 
     function renderErrorRow(cnpjStr, msg) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i> ${cnpjStr}</td><td colspan="2" class="text-muted small italic">${msg}</td>`;
+        tr.innerHTML = `<td class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i> ${cnpjStr}</td><td colspan="2" class="text-muted small fst-italic">${msg}</td>`;
         resultBody.appendChild(tr);
     }
 
     btnExportar.addEventListener('click', () => {
-        if (arrayResultadosGlobais.length === 0) return alert('Sem dados.');
+        if (arrayResultadosGlobais.length === 0) return alert('Nenhum dado para exportar.');
         const dadosPlanilha = arrayResultadosGlobais.map(emp => ({
-            "CNPJ": emp.cnpj, "Razão Social": emp.razaoSocial, "Nome Fantasia": emp.nomeFantasia, 
-            "Situação": emp.situacao, "Município": emp.municipio, "UF": emp.uf, 
-            "Indústria?": emp.isIndustry ? "SIM" : "NÃO"
+            "CNPJ": emp.cnpj,
+            "Razão Social": emp.razaoSocial,
+            "Nome Fantasia": emp.nomeFantasia,
+            "Situação Cadastral": emp.situacao,
+            "Município": emp.municipio,
+            "UF": emp.uf,
+            "Perfil Indústria?": emp.isIndustry ? "SIM" : "NÃO",
+            "CNAE Principal": emp.cnaes.find(c => c.type === 'Principal')?.code || 'N/A',
+            "CNAEs Secundários": emp.cnaes.filter(c => c.type === 'Secundário').map(c => c.code).join(' | ')
         }));
-        const ws = XLSX.utils.json_to_sheet(dadosPlanilha);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Resultados");
-        XLSX.writeFile(wb, "Inteligencia_Consulta_CNPJs.xlsx");
+        const worksheet = XLSX.utils.json_to_sheet(dadosPlanilha);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Resultados");
+        XLSX.writeFile(workbook, "Consulta_CNPJ.xlsx");
     });
 
     btnCopiar.addEventListener('click', () => {
-        if (arrayResultadosGlobais.length === 0) return alert('Sem dados.');
+        if (arrayResultadosGlobais.length === 0) return alert('Nenhum dado para copiar.');
         let texto = "CNPJ\tRazão Social\tIndústria?\n";
-        arrayResultadosGlobais.forEach(e => texto += `${e.cnpj}\t${e.razaoSocial}\t${e.isIndustry ? 'SIM' : 'NÃO'}\n`);
-        navigator.clipboard.writeText(texto).then(() => alert('Tabela copiada!'));
+        arrayResultadosGlobais.forEach(emp => { texto += `${emp.cnpj}\t${emp.razaoSocial}\t${emp.isIndustry ? 'SIM' : 'NÃO'}\n`; });
+        navigator.clipboard.writeText(texto).then(() => alert('Copiado!'));
     });
 
     btnImprimir.addEventListener('click', () => window.print());
-
 </script>
 </body>
 </html>
