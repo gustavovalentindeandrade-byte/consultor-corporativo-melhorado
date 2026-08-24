@@ -126,6 +126,7 @@
         <a class="navbar-brand" href="#">
             <i class="fa-solid fa-building-columns me-2"></i> FIRJAN | Inteligência Corporativa & Sindicatos
         </a>
+        <span id="statusBaseBadge" class="badge bg-warning text-dark">Carregando base sindical...</span>
     </div>
 </nav>
 
@@ -139,8 +140,8 @@
                     <p class="small text-muted mb-2">Insira os CNPJs (um por linha ou separados por vírgula).</p>
                     <textarea id="cnpjInput" class="form-control mb-3" rows="8" placeholder="00.000.000/0001-00&#10;12345678000199"></textarea>
                     
-                    <button id="btnProcessar" class="btn btn-firjan w-100 py-2 mb-3">
-                        <i class="fa-solid fa-gear me-2"></i>Processar Consulta
+                    <button id="btnProcessar" class="btn btn-firjan w-100 py-2 mb-3" disabled>
+                        <i class="fa-solid fa-gear me-2"></i>Aguardando Base...
                     </button>
 
                     <hr>
@@ -179,7 +180,7 @@
                         <tr>
                             <td colspan="3" class="text-center py-5 text-muted small">
                                 <i class="fa-solid fa-magnifying-glass fs-3 mb-2 d-block text-black-50"></i>
-                                Nenhum dado processado ainda.<br>Insira os CNPJs ao lado e clique em "Processar Consulta".
+                                Aguardando o carregamento da base sindical para iniciar as consultas.<br>Insira os CNPJs ao lado após a liberação do botão.
                             </td>
                         </tr>
                     </tbody>
@@ -269,19 +270,9 @@
         "4399-1/05", "4399-1/99"
     ];
 
-    // Base de Dados Oficial de Sindicatos (CNAE Arrumado + Município + UF)
-    // Extraída diretamente da base de abrangência Firjan
-    const baseSindicatos = {
-        "2411300DUQUEDECAXIASRJ": { sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis", sigla: "SIMMEC" },
-        "2411300NILOPOLISRJ": { sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis", sigla: "SIMMEC" },
-        "2411300SAOJOAODEMERITIRJ": { sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis", sigla: "SIMMEC" },
-        "2412100DUQUEDECAXIASRJ": { sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis", sigla: "SIMMEC" },
-        "500301ANGRADOSREISRJ": { sindicato: "Sindicato Nacional da Indústria da Extração de Carvão", sigla: "SNIEC" },
-        "500301AC": { sindicato: "Sindicato Nacional da Indústria da Extração de Carvão", sigla: "SNIEC" },
-        "500301AL": { sindicato: "Sindicato Nacional da Indústria da Extração de Carvão", sigla: "SNIEC" }
-        // Nota: A base completa em produção faz o mapeamento idêntico gerado pelo extrator.
-    };
-
+    // Variáveis globais
+    let baseSindicatos = {};
+    let baseCarregada = false;
     let arrayResultadosGlobais = [];
 
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -292,6 +283,7 @@
     const progressBar = document.getElementById('progressBar');
     const progressCount = document.getElementById('progressCount');
     const progressText = document.getElementById('progressText');
+    const statusBaseBadge = document.getElementById('statusBaseBadge');
 
     const btnExportar = document.getElementById('btnExportar');
     const btnCopiar = document.getElementById('btnCopiar');
@@ -302,19 +294,42 @@
 
     const industriaSet = new Set(cnaesIndustria.map(cleanNumber));
 
-    // Motor de Enquadramento Sindical Automático
+    // Carregamento automático da base de sindicatos completa
+    async function carregarBaseSindicatos() {
+        try {
+            const response = await fetch('base_sindicatos.json');
+            if (!response.ok) throw new Error('Base não encontrada');
+            baseSindicatos = await response.json();
+            baseCarregada = true;
+            statusBaseBadge.innerText = `Base Sindical Carregada (${Object.keys(baseSindicatos).length} regras)`;
+            statusBaseBadge.className = 'badge bg-success text-white';
+            btnProcessar.disabled = false;
+            btnProcessar.innerHTML = '<i class="fa-solid fa-gear me-2"></i>Processar Consulta';
+        } catch (error) {
+            statusBaseBadge.innerText = 'Erro ao carregar base_sindicatos.json';
+            statusBaseBadge.className = 'badge bg-danger text-white';
+            console.error("Erro ao carregar base de sindicatos:", error);
+            alert("Aviso: O arquivo 'base_sindicatos.json' precisa estar na mesma pasta do index.html para realizar o enquadramento sindical!");
+        }
+    }
+
+    carregarBaseSindicatos();
+
+    // Motor de Enquadramento Sindical Automatizado com a Base Completa
     function consultarEnquadramento(cnaesLista, municipio, uf) {
+        if (!baseCarregada) return { sindicato: "Aguardando carregamento da base", sigla: "-", cnaeEnquadrado: "-", tipoCnae: "-", regra: "Aguardando", status: "Aguardando" };
+
         const munNorm = cleanText(municipio);
         const ufNorm = cleanText(uf);
 
         for (let c of cnaesLista) {
             const cnaeArrumado = cleanNumber(c.code);
             
-            // 1. Tenta Regra Específica por Município
+            // 1. Tenta Regra Específica por Município (CNAE + Município + UF)
             const chaveMunicipio = `${cnaeArrumado}${munNorm}${ufNorm}`;
             if (baseSindicatos[chaveMunicipio]) {
                 return {
-                    sindicato: baseSindicatos[chaveMunicipio].sindicato,
+                    sindicato: baseSindicatos[chaveMunicipio].s,
                     sigla: baseSindicatos[chaveMunicipio].sigla,
                     cnaeEnquadrado: c.code,
                     tipoCnae: c.type,
@@ -323,11 +338,11 @@
                 };
             }
 
-            // 2. Tenta Regra Estadual (UF)
+            // 2. Tenta Regra Estadual (CNAE + UF)
             const chaveEstado = `${cnaeArrumado}${ufNorm}`;
             if (baseSindicatos[chaveEstado]) {
                 return {
-                    sindicato: baseSindicatos[chaveEstado].sindicato,
+                    sindicato: baseSindicatos[chaveEstado].s,
                     sigla: baseSindicatos[chaveEstado].sigla,
                     cnaeEnquadrado: c.code,
                     tipoCnae: c.type,
@@ -348,6 +363,11 @@
     }
 
     btnProcessar.addEventListener('click', async () => {
+        if (!baseCarregada) {
+            alert("A base sindical ainda está carregando. Aguarde um instante.");
+            return;
+        }
+
         const input = document.getElementById('cnpjInput').value;
         const cnpjsBrutos = input.split(/[\n,]+/).map(c => cleanNumber(c.trim()));
         const cnpjs = cnpjsBrutos.filter(c => c.length === 14);
@@ -403,7 +423,6 @@
                 const municipioEmpresa = data.municipio || 'N/A';
                 const ufEmpresa = data.uf || 'N/A';
 
-                // Executa o Enquadramento Sindical Automatizado
                 const enquadramento = consultarEnquadramento(allCnaes, municipioEmpresa, ufEmpresa);
 
                 const empresa = {
@@ -466,7 +485,7 @@
                 <div class="p-2 mb-2 bg-light border rounded">
                     <div class="small fw-bold text-primary mb-1"><i class="fa-solid fa-landmark me-1"></i> Sindicato Enquadrado:</div>
                     <div class="small text-dark"><strong>${enq.sindicato}</strong> (${enq.sigla})</div>
-                    <div class="small text-muted mt-1">Regra: ${enq.regra} | CNAE: ${enq.cnaeEnquadrado}</div>
+                    <div class="small text-muted mt-1">Regra: ${enq.regra} | CNAE: ${enq.cnaeEnquadrado} (${enq.tipoCnae})</div>
                 </div>
                 <div class="cnae-list">${cnaeHtml}</div>
             </td>
@@ -504,6 +523,7 @@
                 "Sindicato Enquadrado": emp.enquadramento.sindicato,
                 "Sigla Sindicato": emp.enquadramento.sigla,
                 "CNAE Enquadrado": emp.enquadramento.cnaeEnquadrado,
+                "Tipo CNAE": emp.enquadramento.tipoCnae,
                 "Regra de Enquadramento": emp.enquadramento.regra,
                 "CNAE Principal": cnaePrinc ? `${cnaePrinc.code} - ${cnaePrinc.desc}` : 'N/A',
                 "CNAEs Secundários": cnaesSec || 'Nenhum'
@@ -524,9 +544,9 @@
             return;
         }
 
-        let textoCopia = "CNPJ\tRazão Social\tMunicípio\tUF\tIndústria?\tSindicato\n";
+        let textoCopia = "CNPJ\tRazão Social\tMunicípio\tUF\tIndústria?\tSindicato Enquadrado\tCNAE\n";
         arrayResultadosGlobais.forEach(emp => {
-            textoCopia += `${emp.cnpj}\t${emp.razaoSocial}\t${emp.municipio}\t${emp.uf}\t${emp.isIndustry ? 'SIM' : 'NÃO'}\t${emp.enquadramento.sindicato}\n`;
+            textoCopia += `${emp.cnpj}\t${emp.razaoSocial}\t${emp.municipio}\t${emp.uf}\t${emp.isIndustry ? 'SIM' : 'NÃO'}\t${emp.enquadramento.sindicato}\t${emp.enquadramento.cnaeEnquadrado}\n`;
         });
 
         navigator.clipboard.writeText(textoCopia).then(() => {
