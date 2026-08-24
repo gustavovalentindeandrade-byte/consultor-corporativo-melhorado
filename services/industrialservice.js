@@ -1,42 +1,37 @@
+javascript
 // /services/industrialservice.js
 const unionFramingService = require('./unionFramingService.js');
-// ... seus outros imports originais ...
+// ... outros imports
 
+// Na função que realiza a consulta do CNPJ:
 async function consultarCNPJ(cnpj) {
     try {
-        // Lógica existente preservada
+        // 1. Chamada para a API de CNPJ (lógica existente)
         const dadosCNPJ = await consultarAPICNPJ(cnpj); 
 
-        // --- NOVA INTEGRAÇÃO ---
-        // Normalizamos as chaves caso a sua API retorne nomes diferentes
+        // 2. --- NOVA LÓGICA DE ENQUADRAMENTO SINDICAL ---
+        // Preparar os dados da empresa para o serviço
         const companyData = {
             cnpj: cnpj,
-            razaoSocial: dadosCNPJ.razao_social || dadosCNPJ.nome, // ajuste conforme sua API
+            razaoSocial: dadosCNPJ.razao_social,
             uf: dadosCNPJ.uf,
             municipio: dadosCNPJ.municipio,
-            cnaePrincipal: {
-                codigo: dadosCNPJ.cnae_principal_codigo || dadosCNPJ.atividade_principal[0].code,
-                descricao: dadosCNPJ.cnae_principal_descricao || dadosCNPJ.atividade_principal[0].text
-            },
-            cnaesSecundarios: dadosCNPJ.atividades_secundarias.map(ativ => ({
-                codigo: ativ.code,
-                descricao: ativ.text
-            })) || []
+            cnaePrincipal: dadosCNPJ.cnae_principal,
+            cnaesSecundarios: dadosCNPJ.cnaes_secundarios || [],
         };
-
         const enquadramentoResult = unionFramingService.getUnionFraming(companyData);
 
+        // 3. Combinar os resultados existentes com o novo enquadramento
         const resultadoFinal = {
-            ...dadosCNPJ, 
-            enquadramentoSindical: enquadramentoResult 
+            ...dadosCNPJ, // Dados originais do CNPJ
+            enquadramentoSindical: enquadramentoResult, // Novo dado
         };
 
-        // Salva no histórico (certifique-se que o historyrepository aceita objetos grandes)
+        // 4. Salvar no histórico (modificar para incluir o novo campo)
         await salvarHistorico(cnpj, resultadoFinal);
 
         return resultadoFinal;
     } catch (error) {
-        console.error("Erro na consulta:", error);
-        throw error;
+        // ... tratamento de erros
     }
 }
