@@ -1,32 +1,108 @@
 // /services/unionFramingService.js
 const { Enquadramento, CnaeAnalisado } = require('../models/enquadramentoModel');
-// Importe aqui as funções para ler a base de dados de sindicatos (provavelmente de um arquivo JSON ou banco de dados)
+// Simulação de carregamento do JSON (você pode usar require ou fs.readFileSync se for Node puro)
+const baseSindicatosJSON = require('../data/base_sindicatos.json'); 
 
 class UnionFramingService {
     constructor() {
-        // Inicializar as estruturas de dados em memória:
-        // this.cnaeDescriptionMap = new Map();
-        // this.unionIndexMap = new Map();
-        // this.validCnaeSet = new Set();
-        this.loadData();
+        this.baseDados = baseSindicatosJSON;
     }
 
-    loadData() {
-        // 1. Carregar dados dos arquivos .xlsx ou .json e popular os maps/sets.
-        // Esta lógica será implementada aqui.
-        console.log('Base de dados de sindicatos carregada.');
+    _normalizarCNAE(cnae) {
+        return cnae ? cnae.toString().replace(/[\.\-\/]/g, '') : '';
     }
 
-    normalizeCnae(cnae) {
-        if (!cnae) return '';
-        return cnae.replace(/\D/g, '');
+    _normalizarTexto(texto) {
+        if (!texto) return '';
+        // Remove acentos, espaços e joga para maiúsculo para bater com a chave do JSON
+        return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '');
+    }
+
+    _buscarNaBase(cnaeNorm, municipioNorm, ufNorm) {
+        // 1. Tenta Regra Específica (CNAE + Município + UF)
+        const chaveMunicipio = `${cnaeNorm}${municipioNorm}${ufNorm}`;
+        if (this.baseDados[chaveMunicipio]) {
+            return { dados: this.baseDados[chaveMunicipio], regra: "Específica (Município)" };
+        }
+        
+        // 2. Tenta Regra Estadual (CNAE + UF - Município vazio na base)
+        const chaveEstado = `${cnaeNorm}${ufNorm}`;
+        if (this.baseDados[chaveEstado]) {
+            return { dados: this.baseDados[chaveEstado], regra: "Abrangência Estadual" };
+        }
+        
+        return null;
     }
 
     getUnionFraming(companyData) {
         const response = new Enquadramento();
-        // ... (implementar a lógica do algoritmo descrito na Etapa 3, usando os models)
-        // ... (preencher response.cnaesAnalisados com instâncias de CnaeAnalisado)
+        const { uf, municipio, cnaePrincipal, cnaesSecundarios } = companyData;
+        
+        const ufNorm = this._normalizarTexto(uf);
+        const munNorm = this._normalizarTexto(municipio);
+        const localidadeExibicao = `${municipio}/${uf}`;
+
+        let sindicatosEncontrados = [];
+
+        // Função auxiliar para processar cada CNAE
+        const processarCnae = (cnaeObj, tipo) => {
+            if (!cnaeObj || !cnaeObj.codigo) return;
+            
+            const cnaeNorm = this._normalizarCNAE(cnaeObj.codigo);
+            const match = this._buscarNaBase(cnaeNorm, munNorm, ufNorm);
+            
+            if (match) {
+                sindicatosEncontrados.push({ cnae: cnaeObj, tipo, match });
+                response.cnaesAnalisados.push(new CnaeAnalisado(
+                    cnaeObj.codigo, tipo, cnaeObj.descricao, match.dados.sindicato, localidadeExibicao, match.regra, 'Enquadrado'
+                ));
+            } else {
+                response.cnaesAnalisados.push(new CnaeAnalisado(
+                    cnaeObj.codigo, tipo, cnaeObj.descricao, null, localidadeExibicao, null, 'Sem correspondência'
+                ));
+            }
+        };
+
+        // 1. Analisa Principal
+        processarCnae(cnaePrincipal, 'Principal');
+
+        // 2. Analisa Secundários
+        if (cnaesSecundarios && Array.isArray(cnaesSecundarios)) {
+            cnaesSecundarios.forEach(cnae => processarCnae(cnae, 'Secundário'));
+        }
+
+        // 3. Define o status final baseado nos achados
+        if (sindicatosEncontrados.length === 0) {
+            response.status = 'Não identificado';
+            response.motivo = 'Nenhum CNAE da empresa possui correspondência para esta localidade na base sindical.';
+            return response;
+        }
+
+        // 4. Verifica conflitos (múltiplos sindicatos diferentes)
+        const nomesSindicatos = [...new Set(sindicatosEncontrados.map(s => s.match.dados.sindicato))];
+        
+        if (nomesSindicatos.length > 1) {
+            response.status = 'Análise necessária';
+            response.motivo = 'Foram encontrados múltiplos sindicatos aplicáveis devido aos CNAEs secundários. Requer verificação manual.';
+            // Preenche com o primeiro apenas para referência, a tabela mostrará todos
+            this._preencherDadosEnquadramento(response, sindicatosEncontrados[0]); 
+        } else {
+            response.status = 'Enquadrado';
+            response.motivo = 'Enquadramento realizado com sucesso.';
+            // Pega o primeiro match (se o principal enquadrou, será ele. Senão, será o primeiro secundário válido)
+            this._preencherDadosEnquadramento(response, sindicatosEncontrados[0]);
+        }
+
         return response;
+    }
+
+    _preencherDadosEnquadramento(response, matchObj) {
+        response.sindicato = matchObj.match.dados.sindicato;
+        response.baseTerritorial = matchObj.match.dados.sigla || 'Não informada';
+        response.cnaeEnquadrado = matchObj.cnae.codigo;
+        response.descricaoCnaeEnquadrado = matchObj.cnae.descricao;
+        response.tipoCnae = matchObj.tipo;
+        response.regraUtilizada = matchObj.match.regra;
     }
 }
 
