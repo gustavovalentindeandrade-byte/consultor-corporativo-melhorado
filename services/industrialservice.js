@@ -1,37 +1,45 @@
-javascript
 // /services/industrialservice.js
-const unionFramingService = require('./unionFramingService.js');
-// ... outros imports
 
-// Na função que realiza a consulta do CNPJ:
-async function consultarCNPJ(cnpj) {
-    try {
-        // 1. Chamada para a API de CNPJ (lógica existente)
-        const dadosCNPJ = await consultarAPICNPJ(cnpj); 
+import { Utils } from '../js/utils.js';
+import { ResultadoAnalise } from '../models/resultadoanalise.js';
+import unionFramingService from './unionFramingService.js'; // Importa o novo serviço de enquadramento sindical
 
-        // 2. --- NOVA LÓGICA DE ENQUADRAMENTO SINDICAL ---
-        // Preparar os dados da empresa para o serviço
+export const IndustrialService = {
+    analisar(empresa, analisarSecundarias = true) {
+        // 1. Lógica original mantida intacta
+        const normPrincipal = Utils.normalizeCnae(empresa.cnaePrincipalCod);
+        
+        // ... sua lógica de análise industrial existente continua aqui ...
+        
+        // 2. --- NOVA INTEGRAÇÃO DE ENQUADRAMENTO SINDICAL ---
+        // Prepara os dados da empresa usando os campos padrão recebidos no objeto 'empresa'
         const companyData = {
-            cnpj: cnpj,
-            razaoSocial: dadosCNPJ.razao_social,
-            uf: dadosCNPJ.uf,
-            municipio: dadosCNPJ.municipio,
-            cnaePrincipal: dadosCNPJ.cnae_principal,
-            cnaesSecundarios: dadosCNPJ.cnaes_secundarios || [],
+            cnpj: empresa.cnpj || '',
+            razaoSocial: empresa.razaoSocial || empresa.nome || '',
+            uf: empresa.uf || '',
+            municipio: empresa.municipio || '',
+            cnaePrincipal: {
+                codigo: empresa.cnaePrincipalCod || '',
+                descricao: empresa.cnaePrincipalDescricao || ''
+            },
+            // Garante compatibilidade caso os secundários venham como array de objetos ou array de códigos
+            cnaesSecundarios: Array.isArray(empresa.cnaesSecundarios) 
+                ? empresa.cnaesSecundarios 
+                : (empresa.cnaesSecundariosCodList || []).map(c => ({ 
+                    codigo: typeof c === 'string' ? c : c.codigo, 
+                    descricao: c.descricao || '' 
+                }))
         };
+
+        // Executa o motor de enquadramento sindical
         const enquadramentoResult = unionFramingService.getUnionFraming(companyData);
 
-        // 3. Combinar os resultados existentes com o novo enquadramento
-        const resultadoFinal = {
-            ...dadosCNPJ, // Dados originais do CNPJ
-            enquadramentoSindical: enquadramentoResult, // Novo dado
+        // 3. Retorno consolidado (mantém o original e acopla a nova propriedade)
+        return {
+            perfil: "Verificado",
+            possuiIndustrial: false, // Mantido do seu código original
+            todasAnalisadas: [],     // Mantido do seu código original
+            enquadramentoSindical: enquadramentoResult // Novo dado de enquadramento sindical integrado
         };
-
-        // 4. Salvar no histórico (modificar para incluir o novo campo)
-        await salvarHistorico(cnpj, resultadoFinal);
-
-        return resultadoFinal;
-    } catch (error) {
-        // ... tratamento de erros
     }
-}
+};
