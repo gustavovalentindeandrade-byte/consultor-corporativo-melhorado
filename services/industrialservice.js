@@ -1,36 +1,42 @@
 // /services/industrialservice.js
 const unionFramingService = require('./unionFramingService.js');
-// ... outros imports
+// ... seus outros imports originais ...
 
-// Na função que realiza a consulta do CNPJ:
 async function consultarCNPJ(cnpj) {
     try {
-        // 1. Chamada para a API de CNPJ (lógica existente)
+        // Lógica existente preservada
         const dadosCNPJ = await consultarAPICNPJ(cnpj); 
 
-        // 2. --- NOVA LÓGICA DE ENQUADRAMENTO SINDICAL ---
-        // Preparar os dados da empresa para o serviço
+        // --- NOVA INTEGRAÇÃO ---
+        // Normalizamos as chaves caso a sua API retorne nomes diferentes
         const companyData = {
             cnpj: cnpj,
-            razaoSocial: dadosCNPJ.razao_social,
+            razaoSocial: dadosCNPJ.razao_social || dadosCNPJ.nome, // ajuste conforme sua API
             uf: dadosCNPJ.uf,
             municipio: dadosCNPJ.municipio,
-            cnaePrincipal: dadosCNPJ.cnae_principal,
-            cnaesSecundarios: dadosCNPJ.cnaes_secundarios || [],
+            cnaePrincipal: {
+                codigo: dadosCNPJ.cnae_principal_codigo || dadosCNPJ.atividade_principal[0].code,
+                descricao: dadosCNPJ.cnae_principal_descricao || dadosCNPJ.atividade_principal[0].text
+            },
+            cnaesSecundarios: dadosCNPJ.atividades_secundarias.map(ativ => ({
+                codigo: ativ.code,
+                descricao: ativ.text
+            })) || []
         };
+
         const enquadramentoResult = unionFramingService.getUnionFraming(companyData);
 
-        // 3. Combinar os resultados existentes com o novo enquadramento
         const resultadoFinal = {
-            ...dadosCNPJ, // Dados originais do CNPJ
-            enquadramentoSindical: enquadramentoResult, // Novo dado
+            ...dadosCNPJ, 
+            enquadramentoSindical: enquadramentoResult 
         };
 
-        // 4. Salvar no histórico (modificar para incluir o novo campo)
+        // Salva no histórico (certifique-se que o historyrepository aceita objetos grandes)
         await salvarHistorico(cnpj, resultadoFinal);
 
         return resultadoFinal;
     } catch (error) {
-        // ... tratamento de erros
+        console.error("Erro na consulta:", error);
+        throw error;
     }
 }
