@@ -1,3 +1,4 @@
+/* css/style.css */
 :root {
     --primary-blue: #003B7A;
     --primary-blue-hover: #002D5E;
@@ -5,6 +6,7 @@
     --text-dark: #1F2937;
     --success-color: #10B981;
     --danger-color: #EF4444;
+    --warning-color: #F59E0B;
 }
 
 * {
@@ -22,7 +24,7 @@ body {
 
 .cursor-pointer {
     cursor: pointer;
-    transition: 0.2s;
+    transition: opacity 0.2s;
 }
 
 .cursor-pointer:hover {
@@ -33,12 +35,26 @@ body {
     background-color: #d1fae5;
     color: #065f46;
     border: 1px solid #10b981;
+    font-weight: 600;
 }
 
 .badge-industrial-no {
     background-color: #fee2e2;
     color: #991b1b;
     border: 1px solid #ef4444;
+    font-weight: 600;
+}
+
+.status-badge-erro {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #f87171;
+}
+
+.status-badge-sucesso {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
 }
 
 @media print {
