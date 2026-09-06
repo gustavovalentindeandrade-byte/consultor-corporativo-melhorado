@@ -345,7 +345,7 @@ No final do arquivo, o evento do botão de copiar ficou assim:
     arrayResultadosGlobais.forEach(e => {
       tsv += [e.cnpj, e.razaoSocial, e.municipio, e.uf, e.isIndustry ? "SIM" : "NÃO", e.enquadramento.sindicato, e.enquadramento.sigla].join("\t") + "\n";
     });
-    navigator. [e.cnpj, e.razaoSocial, e.municipio, e.uf, e.isIndustry ? "SIM" : "NÃO", e.enquadramento.sindicato, e.enquadramento.sigla].join("\t") + "\n"; // <-- ERRO FATAL AQUI
-    }); // <-- ERRO FATAL AQUI
+    navigator.clipboard.writeText(tsv).then(() => alert("Tabela copiada!"));
+  });
     navigator.clipboard.writeText(tsv).then(() => alert("Tabela copiada!"));
   });
