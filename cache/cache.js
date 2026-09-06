@@ -1,3 +1,4 @@
+// cache/cache.js
 import { CONFIG } from '../config/config.js';
 
 export const CacheManager = {
@@ -15,8 +16,8 @@ export const CacheManager = {
             const item = JSON.parse(raw);
             const now = Date.now();
 
-            // Verifica expiração
-            if (now - item.timestamp > CONFIG.CACHE_TTL_MS) {
+            // Validação defensiva do item e timestamp
+            if (!item || typeof item.timestamp !== 'number' || (now - item.timestamp > CONFIG.CACHE_TTL_MS)) {
                 this.remove(cnpj);
                 return null;
             }
@@ -28,7 +29,6 @@ export const CacheManager = {
 
     set(cnpj, data) {
         try {
-            // Antes de salvar, limpa itens expirados para liberar espaço
             this.prune();
 
             const item = {
@@ -37,10 +37,11 @@ export const CacheManager = {
             };
             localStorage.setItem(this._getKey(cnpj), JSON.stringify(item));
         } catch (err) {
-            // Se der erro de cota cheia, limpa todo o cache e tenta salvar o último
             if (err.name === 'QuotaExceededError') {
                 this.clearAll();
-                try { localStorage.setItem(this._getKey(cnpj), JSON.stringify({ timestamp: Date.now(), data })); } catch(e) {}
+                try {
+                    localStorage.setItem(this._getKey(cnpj), JSON.stringify({ timestamp: Date.now(), data }));
+                } catch(e) {}
             }
         }
     },
@@ -49,7 +50,6 @@ export const CacheManager = {
         localStorage.removeItem(this._getKey(cnpj));
     },
 
-    // Remove todos os itens que começam com o prefixo e que expiraram
     prune() {
         const now = Date.now();
         const keys = Object.keys(localStorage);
@@ -59,15 +59,17 @@ export const CacheManager = {
             if (key.startsWith(this._prefix)) {
                 try {
                     const item = JSON.parse(localStorage.getItem(key));
-                    if (now - item.timestamp > CONFIG.CACHE_TTL_MS) {
+                    if (!item || typeof item.timestamp !== 'number' || (now - item.timestamp > CONFIG.CACHE_TTL_MS)) {
                         localStorage.removeItem(key);
+                    } else {
+                        count++;
                     }
-                    count++;
-                } catch(e) { localStorage.removeItem(key); }
+                } catch(e) {
+                    localStorage.removeItem(key);
+                }
             }
         });
 
-        // Se ainda houver muitos itens, remove os 10% mais antigos (Lógica de segurança)
         if (count > CONFIG.MAX_CACHE_ITEMS) {
             this.clearAll(); 
         }
