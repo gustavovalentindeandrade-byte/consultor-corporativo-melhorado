@@ -1,3 +1,4 @@
+// models/empresa.js
 export class Empresa {
     constructor(rawData, providerName) {
         this.cnpj = rawData.cnpj || '';
@@ -16,17 +17,24 @@ export class Empresa {
         this.cep = rawData.cep || '';
         this.telefone = rawData.telefone || '';
         this.email = rawData.email || '';
-        this.cnaePrincipalCod = rawData.cnae_fiscal || rawData.cnaePrincipal?.codigo || '';
-        this.cnaePrincipalDesc = rawData.cnae_fiscal_descricao || rawData.cnaePrincipal?.descricao || '';
+
+        // Blindagem: Garante que o CNAE tenha 7 dígitos mesmo que venha como número
+        const codCnae = rawData.cnae_fiscal || rawData.cnaePrincipal?.codigo || '';
+        this.cnaePrincipalCod = codCnae ? String(codCnae).replace(/\D/g, '').padStart(7, '0') : '';
+        this.cnaePrincipalDesc = rawData.cnae_fiscal_descricao || rawData.cnaePrincipal?.descricao || 'Sem descrição';
+        
         this.cnaesSecundarios = this._normalizeCnaesSecundarias(rawData.cnaes_secundarios || rawData.cnaesSecundarias || []);
         this.provider = providerName;
     }
 
     _normalizeCnaesSecundarias(cnaes) {
         if (!Array.isArray(cnaes)) return [];
-        return cnaes.map(c => ({
-            codigo: c.codigo || c.code || '',
-            descricao: c.descricao || c.text || ''
-        }));
+        return cnaes.map(c => {
+            const rawCod = c.codigo || c.code || c.id || '';
+            return {
+                codigo: rawCod ? String(rawCod).replace(/\D/g, '').padStart(7, '0') : '',
+                descricao: c.descricao || c.text || 'Sem descrição'
+            };
+        });
     }
 }
