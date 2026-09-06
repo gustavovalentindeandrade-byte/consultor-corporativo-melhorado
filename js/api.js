@@ -1,11 +1,21 @@
 // js/api.js
 import { CONFIG } from '../config/config.js';
-import { HTTP_STATUS, ERROR_MESSAGES } from '../config/constants.js';
+import { ERROR_MESSAGES } from '../config/constants.js';
+
+export class HttpError extends Error {
+    constructor(status, message, responseTimeMs = 0) {
+        super(message);
+        this.name = 'HttpError';
+        this.status = status;
+        this.responseTimeMs = responseTimeMs;
+    }
+}
 
 export const ApiClient = {
     async fetchWithTimeout(url, options = {}) {
+        const timeoutMs = CONFIG?.TIMEOUT_MS || 12000;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
         const startTime = performance.now();
         try {
@@ -17,30 +27,40 @@ export const ApiClient = {
             clearTimeout(timeoutId);
             const responseTimeMs = Math.round(performance.now() - startTime);
             if (error.name === 'AbortError') {
-                throw { message: ERROR_MESSAGES.TIMEOUT, isTimeout: true, responseTimeMs };
+                throw new HttpError(408, ERROR_MESSAGES?.TIMEOUT || "Tempo limite esgotado.", responseTimeMs);
             }
-            throw { message: ERROR_MESSAGES.NETWORK_ERROR, isNetworkError: true, responseTimeMs };
+            throw new HttpError(0, ERROR_MESSAGES?.NETWORK_ERROR || "Erro de conexão de rede.", responseTimeMs);
         }
     },
 
     async fetchWithRetry(url, options = {}) {
         let lastError = null;
-        for (let attempt = 0; attempt < CONFIG.MAX_RETRIES; attempt++) {
+        const maxRetries = CONFIG?.MAX_RETRIES ?? 2;
+        const baseDelay = CONFIG?.RETRY_BACKOFF_BASE_MS ?? 1500;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 const result = await this.fetchWithTimeout(url, options);
-                if (result.response.ok) return result; // SUCESSO REAL
+                if (result.response.ok) return result;
 
-                // Se chegou aqui, o status é de erro (404, 429, 500...)
                 const status = result.response.status;
+                // Backoff apenas para rate limit (429) ou erros de servidor (5xx)
                 if (status === 429 || status >= 500) {
-                    const delay = CONFIG.RETRY_BACKOFF_BASE_MS * Math.pow(2, attempt);
-                    await new Promise(r => setTimeout(r, delay));
-                    continue;
+                    if (attempt < maxRetries) {
+                        const delay = baseDelay * Math.pow(2, attempt);
+                        await new Promise(r => setTimeout(r, delay));
+                        continue;
+                    }
                 }
-                throw { status, message: `Erro HTTP: ${status}` };
+                throw new HttpError(status, `HTTP ${status}: ${result.response.statusText}`, result.responseTimeMs);
             } catch (err) {
                 lastError = err;
-                if (err.status && err.status < 500 && err.status !== 429) throw err;
+                // 404 não deve ser retentado
+                if (err.status === 404) throw err;
+                if (attempt >= maxRetries) throw err;
+                
+                const delay = baseDelay * Math.pow(2, attempt);
+                await new Promise(r => setTimeout(r, delay));
             }
         }
         throw lastError;
