@@ -698,7 +698,43 @@
   ];
 
   // =========================================================================
-  // MOTOR DE BUSCA DETERMINÍSTICO (DADOS -> REGRAS -> PROCESSAMENTO)
+// =========================================================================
+  // NOVA BASE DE DADOS DE ABRANGÊNCIA EXATA (CNAE x MUNICÍPIO)
+  // =========================================================================
+  // Esta estrutura substitui as antigas regras regionais por mapeamento direto.
+  
+  const regrasAbrangenciaExata = {
+    // Exemplo do Setor de Extração de Carvão
+    "0500301": {
+      "DEFAULT": "Sindicato Nacional da Indústria da Extração de Carvão" // Regra Nacional
+    },
+    // Exemplo do Setor de Mineração de Areia
+    "0600003": {
+      "DEFAULT": "Sindicato dos Mineradores de Areia do Estado do Rio de Janeiro" // Regra Estadual RJ
+    },
+    // Exemplo do Setor de Panificação e Alimentação (Fragmentado por município)
+    "1011201": {
+      "ANGRADOSREIS": "Sindicato das Indústrias de Panificação e Confeitaria",
+      "APERIBE": "Sindicato das Indústrias de Alimentação no Noroeste Fluminense",
+      "ARARUAMA": "Sindicato das Indústrias de Alimentação de Niterói",
+      "AREAL": "Sind Ind de Alimentação Três Rios, Paraib. do Sul",
+      "MAGE": "Sindicato das Indústrias de Alimentação de Niterói",
+      "RIODEJANEIRO": "Sindicato das Indústrias de Alimentos do Município do Rio",
+      "SAOGONCALO": "Sindicato das Indústrias de Alimentação de Niterói"
+    },
+    // Exemplo do Setor de Gnaisses e Brita
+    "0810099": {
+      "APERIBE": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES",
+      "BOMJESUSDOITABAPOANA": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES",
+      "CAMBUCI": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES",
+      "ITAOCARA": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES",
+      "ITAPERUNA": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES",
+      "DEFAULT": "Sind da Indústria de Mineração de Brita no Estado do Rio de Janeiro - SINDIBRITA"
+    }
+  };
+
+  // =========================================================================
+  // NOVO MOTOR DE BUSCA DETERMINÍSTICO (CNAE -> Município -> Sindicato)
   // =========================================================================
   function buscarSindicatosParaCnae(cnaeRaw, municipio, uf) {
     const cnae = cleanNumber(cnaeRaw);
@@ -707,8 +743,7 @@
 
     if (!cnae || cnae.length < 5) return [];
 
-    // Verificação de Segurança na Base Oficial da FIRJAN:
-    // Apenas CNAEs com status 'Sindicato' na Estrutura CNAE podem ser enquadrados.
+    // Verificação de Segurança na Base Oficial da FIRJAN
     const cnaeInfo = baseCNAEs[cnae];
     if (cnaeInfo && cnaeInfo.assoc !== "Sindicato") {
       return [];
@@ -716,222 +751,179 @@
 
     const matches = [];
 
-    // 1. Sindicatos Nacionais
-    for (const s of SINDICATOS_NACIONAIS) {
-      if (s.prefix.some(p => p.test(cnae))) {
-        matches.push({ sindicato: s.nome, regra: s.regra, situacao: "Enquadrado" });
+    // 1. TENTA A BUSCA EXATA NO NOVO DICIONÁRIO (MÁXIMA PRECISÃO)
+    if (regrasAbrangenciaExata[cnae]) {
+      const regrasDoCnae = regrasAbrangenciaExata[cnae];
+      
+      // Procura primeiro pelo município específico
+      if (regrasDoCnae[munNorm]) {
+        matches.push({
+          sindicato: regrasDoCnae[munNorm],
+          regra: \`Abrangência Municipal Mapeada (\${municipio})\`,
+          situacao: "Enquadrado"
+        });
+        return matches;
+      } 
+      // Se não achar o município, mas a empresa for do RJ, aplica a regra DEFAULT do RJ
+      else if (ufNorm === "RJ" && regrasDoCnae["DEFAULT"]) {
+        matches.push({
+          sindicato: regrasDoCnae["DEFAULT"],
+          regra: "Abrangência Estadual Padrão",
+          situacao: "Enquadrado"
+        });
+        return matches;
+      }
+      // Se a empresa for de outro estado, verifica se a regra DEFAULT é Nacional
+      else if (ufNorm !== "RJ" && regrasDoCnae["DEFAULT"] && regrasDoCnae["DEFAULT"].toUpperCase().includes("NACIONAL")) {
+        matches.push({
+          sindicato: regrasDoCnae["DEFAULT"],
+          regra: "Abrangência Nacional",
+          situacao: "Enquadrado"
+        });
+        return matches;
       }
     }
 
-    // Se estiver fora do RJ, apenas entidades nacionais se aplicam
-    if (ufNorm !== "RJ") {
-      return matches;
+    // =======================================================================
+    // 2. PLANO B (FALLBACK): MANTÉM AS REGRAS ANTIGAS PARA CNAES NÃO MAPEADOS
+    // =======================================================================
+    
+    // Sindicatos Nacionais
+    for (const s of SINDICATOS_NACIONAIS) {
+      if (s.prefix.some(p => p.test(cnae))) {
+        matches.push({ sindicato: s.nome, regra: s.regra + " (Regra Geral)", situacao: "Enquadrado" });
+      }
     }
 
-    // 2. Sindicatos Estaduais do RJ
+    if (ufNorm !== "RJ") return matches;
+
+    // Sindicatos Estaduais do RJ
     for (const s of SINDICATOS_ESTADUAIS_RJ) {
       if (s.prefix.some(p => p.test(cnae))) {
         if (!matches.some(m => m.sindicato === s.nome)) {
-          matches.push({ sindicato: s.nome, regra: s.regra, situacao: "Enquadrado" });
+          matches.push({ sindicato: s.nome, regra: s.regra + " (Regra Geral)", situacao: "Enquadrado" });
         }
       }
     }
 
-    // 3. Regras Regionais e Municipais no Estado do Rio de Janeiro
-    // Brita / Gnaisses (0810099)
-    if (cnae.startsWith("0810099")) {
-      if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sind da Indústria de Mineração de Brita no Estado do Rio de Janeiro - SINDIBRITA", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    // Cerâmica e Olaria (Divisão 234)
-    if (cnae.startsWith("23427") || cnae.startsWith("23494")) {
-      if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção de Campos - SICCC", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção e Olaria do Médio Vale do Paraíba - SINDICER MVP", regra: `Abrangência Regional (${municipio} - Médio Paraíba)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção e de Olaria do Estado do Rio de Janeiro - SINDICER RJ", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    // Setor de Alimentação & Panificação (Divisão 10, 11 e 4721102)
-    if (cnae.startsWith("10") || cnae.startsWith("11") || cnae.startsWith("4721102") || cnae.startsWith("5620101")) {
-      // Panificação Industrial e Padarias com fabricação
-      if (cnae.startsWith("10911") || cnae.startsWith("4721102")) {
-        if (munNorm === "RIODEJANEIRO") {
-          matches.push({ sindicato: "Sindicato da Indústria de Panificação e Confeitaria do Município do Rio de Janeiro - RIO+PÃO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else if (munNorm === "PETROPOLIS") {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria de Petrópolis - SINDPÃES", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else if (["NITEROI", "SAOGONCALO", "ITABORAI", "TERESOPOLIS"].includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria de Niterói e São Gonçalo - SINDPANIFIC", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria da Região Sul do Estado do Rio de Janeiro - SIPACON", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-          matches.push({ sindicato: "Sind. Inds. de Massas Alimentícias, Panificação e Afins da Baixada Fluminense - SIMAPAN", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind Panif Conf Prod Cacau Balas Massas Alim Bisc Cerv Beb Geral Doces e Conservas de Campos - SIPAL", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação no Noroeste do Estado do Rio de Janeiro - SIANERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind de Alimentação Três Rios, Paraib. do Sul, Sapucaia, Areal, Com.Levy Gaspa e S J V do R.Preto - SINDAL", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-        }
-      }
-
-      // Alimentos e Bebidas em Geral
-      if (!cnae.startsWith("10911") && !cnae.startsWith("4721102")) {
-        if (munNorm === "RIODEJANEIRO") {
-          if (cnae.startsWith("11")) {
-            matches.push({ sindicato: "Sindicato Intermunicipal da Indústria de Bebidas em Geral do Rio de Janeiro - SINDBEBI", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-          } else {
-            matches.push({ sindicato: "Sindicato das Indústrias de Alimentos do Município do Rio de Janeiro - SIARJ", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-          }
-        } else if (munNorm === "PETROPOLIS" || munNorm === "TERESOPOLIS") {
-          matches.push({ sindicato: "Sind das Inds de Cerv e Beb em Geral, Prod Cacau, Balas, Doces, Conserv Aliment e Biscot de Petrópolis - SINDCER", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-          matches.push({ sindicato: "Sind. Inds. de Massas Alimentícias, Panificação e Afins da Baixada Fluminense - SIMAPAN", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação de Niterói - SIAN", regra: `Abrangência Regional (${municipio} - Leste/Lagos)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SERRANA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação de Nova Friburgo - SINDANF", regra: `Abrangência Regional (${municipio} - Região Serrana)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind Panif Conf Prod Cacau Balas Massas Alim Bisc Cerv Beb Geral Doces e Conservas de Campos - SIPAL", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação no Noroeste do Estado do Rio de Janeiro - SIANERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind de Alimentação Três Rios, Paraib. do Sul, Sapucaia, Areal, Com.Levy Gaspa e S J V do R.Preto - SINDAL", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria da Região Sul do Estado do Rio de Janeiro - SIPACON", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-        }
-      }
-    }
-
-    // Construção Civil e Obras (Divisões 41, 4292, 4299, 43, 711, 9102)
+    // Regras de Bloco (Construção Civil, Metalmecânica, etc - mantidas como fallback)
     if (cnae.startsWith("41") || cnae.startsWith("429") || cnae.startsWith("433") || cnae.startsWith("439") || cnae.startsWith("711") || cnae.startsWith("9102")) {
       if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil no Estado do Rio de Janeiro - SINDUSCON RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil no Estado do Rio de Janeiro - SINDUSCON RIO", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil de Petrópolis - SINDUSCON PETROPOLIS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil de Petrópolis - SINDUSCON PETROPOLIS", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "NITEROI") {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e Engenharia Consultiva de Niterói - SINDICON", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e Engenharia Consultiva de Niterói - SINDICON", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: \`Abrangência Regional (\${municipio} - Baixada Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: `Abrangência Regional (${municipio} - Leste Fluminense/Lagos)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: \`Abrangência Regional (\${municipio} - Leste Fluminense/Lagos)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SERRANA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Centro Norte Fluminense - SINDUSCON CN", regra: `Abrangência Regional (${municipio} - Centro-Norte/Serrana)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Centro Norte Fluminense - SINDUSCON CN", regra: \`Abrangência Regional (\${municipio} - Centro-Norte/Serrana)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Norte Fluminense - SINDUSCON NORTE", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Norte Fluminense - SINDUSCON NORTE", regra: \`Abrangência Regional (\${municipio} - Norte Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sind das Inds da Constr Civil, Montagens Industriais e Engª Consultiva no Noroeste do Est do RJ - SINDUSCON NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind das Inds da Constr Civil, Montagens Industriais e Engª Consultiva no Noroeste do Est do RJ - SINDUSCON NOROESTE", regra: \`Abrangência Regional (\${municipio} - Noroeste Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: \`Abrangência Regional (\${municipio} - Centro-Sul)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: \`Abrangência Regional (\${municipio} - Sul Fluminense)\`, situacao: "Enquadrado" });
       }
     }
 
-    // Metalmecânica e Material Elétrico (Divisões 24, 25, 27, 28, 30, 3102, 33, 3831)
     if (cnae.startsWith("24") || cnae.startsWith("25") || cnae.startsWith("27") || cnae.startsWith("28") || cnae.startsWith("3102") || cnae.startsWith("33") || cnae.startsWith("3831")) {
       if (munNorm === "RIODEJANEIRO") {
         if (cnae.startsWith("24") || cnae.startsWith("25")) {
-          matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas do Município do Rio de Janeiro - SINMETAL", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+          matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas do Município do Rio de Janeiro - SINMETAL", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
         }
         if (cnae.startsWith("27") || cnae.startsWith("28") || cnae.startsWith("30") || cnae.startsWith("3102") || cnae.startsWith("33") || cnae.startsWith("3831")) {
-          matches.push({ sindicato: "Sindicato das Indústrias Mecânicas e de Material Elétrico do Município do Rio de Janeiro - SIMME", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+          matches.push({ sindicato: "Sindicato das Indústrias Mecânicas e de Material Elétrico do Município do Rio de Janeiro - SIMME", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
         }
       } else if (["DUQUEDECAXIAS", "SAOJOAODEMERITI", "NILOPOLIS"].includes(munNorm)) {
-        matches.push({ sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis - SIMMEC", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis - SIMMEC", regra: \`Abrangência Regional (\${municipio} - Baixada Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sind. Inds. Metal, Mec, Automot, de Info e de Mat. Eletro-Eletrônico Médio Paraíba e Sul Fluminense - METALSUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind. Inds. Metal, Mec, Automot, de Info e de Mat. Eletro-Eletrônico Médio Paraíba e Sul Fluminense - METALSUL", regra: \`Abrangência Regional (\${municipio} - Sul Fluminense)\`, situacao: "Enquadrado" });
       } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Nova Friburgo - SINDMETAL", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Nova Friburgo - SINDMETAL", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Petrópolis - SINDMMEP", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Petrópolis - SINDMMEP", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Campos - SINDMEC", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Campos - SINDMEC", regra: \`Abrangência Regional (\${municipio} - Norte Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Mat Elétrico no Noroeste do Est do Rio de Janeiro - SINDMETAL NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Mat Elétrico no Noroeste do Est do Rio de Janeiro - SINDMETAL NOROESTE", regra: \`Abrangência Regional (\${municipio} - Noroeste Fluminense)\`, situacao: "Enquadrado" });
       } else {
         matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico no Estado do Rio de Janeiro - RJ METAL", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
       }
     }
 
-    // Madeira e Mobiliário (Divisões 16, 3101, 3103, 3104, 32914, 33295)
     if (cnae.startsWith("16") || cnae.startsWith("3101") || cnae.startsWith("3103") || cnae.startsWith("3104") || cnae.startsWith("32914") || cnae.startsWith("33295")) {
       if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sind Ind Móv Mad Junco Vime Serrar Carpint Tanoaria Mad Compens e Lamin Aglom Chapa do Mun RJ - SIM-RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind Ind Móv Mad Junco Vime Serrar Carpint Tanoaria Mad Compens e Lamin Aglom Chapa do Mun RJ - SIM-RIO", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato da Indústria de Marcenaria, Móveis de Madeira, Serrarias, Carpintarias e Tanoarias de Petrópolis - SINDMARCENARIA", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria de Marcenaria, Móveis de Madeira, Serrarias, Carpintarias e Tanoarias de Petrópolis - SINDMARCENARIA", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria do Mobiliário de Campos dos Goytacazes - SINDIMOB", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria do Mobiliário de Campos dos Goytacazes - SINDIMOB", regra: \`Abrangência Regional (\${municipio} - Norte Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: \`Abrangência Regional (\${municipio} - Baixada Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: `Abrangência Regional (${municipio} - Leste Fluminense/Lagos)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: \`Abrangência Regional (\${municipio} - Leste Fluminense/Lagos)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: \`Abrangência Regional (\${municipio} - Centro-Sul)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: \`Abrangência Regional (\${municipio} - Sul Fluminense)\`, situacao: "Enquadrado" });
       }
     }
 
-    // Vestuário, Confecção, Calçados e Tinturaria (Divisões 14, 15, 13405, 32922, 3299005, 96017)
     if (cnae.startsWith("14") || cnae.startsWith("15") || cnae.startsWith("13405") || cnae.startsWith("32922") || cnae.startsWith("3299005") || cnae.startsWith("96017")) {
       if (munNorm === "RIODEJANEIRO") {
         if (cnae.startsWith("15")) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Calçados e de Bolsas, Luvas e Similares do Município do Rio de Janeiro - SINDICALÇADOS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+          matches.push({ sindicato: "Sindicato das Indústrias de Calçados e de Bolsas, Luvas e Similares do Município do Rio de Janeiro - SINDICALÇADOS", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
         } else if (cnae.startsWith("13405") || cnae.startsWith("96017")) {
-          matches.push({ sindicato: "Sindicato da Indústria da Tinturaria do Vestuário no Município do Rio de Janeiro - SINTINTURARIAS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+          matches.push({ sindicato: "Sindicato da Indústria da Tinturaria do Vestuário no Município do Rio de Janeiro - SINTINTURARIAS", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
         } else {
-          matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+          matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
         }
       } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sind da Indústria de Confecção de Roupas e Chapéus de Senhoras de Petrópolis - SINDCON", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind da Indústria de Confecção de Roupas e Chapéus de Senhoras de Petrópolis - SINDCON", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "NITEROI") {
-        matches.push({ sindicato: "Sindicato da Indústria de Alfaiataria e de Confecção de Roupas de Homem de Niterói - SINDICONF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria de Alfaiataria e de Confecção de Roupas de Homem de Niterói - SINDICONF", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias do Vestuário de Nova Friburgo - SINDVEST", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias do Vestuário de Nova Friburgo - SINDVEST", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria do Vestuário do Norte Fluminense - SINDVEST NORTE", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria do Vestuário do Norte Fluminense - SINDVEST NORTE", regra: \`Abrangência Regional (\${municipio} - Norte Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias de Confecções de Roupas no Noroeste do Estado do Rio de Janeiro - SINCRONERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias de Confecções de Roupas no Noroeste do Estado do Rio de Janeiro - SINCRONERJ", regra: \`Abrangência Regional (\${municipio} - Noroeste Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias do Vestuário do Sul do Estado do Rio de Janeiro", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias do Vestuário do Sul do Estado do Rio de Janeiro", regra: \`Abrangência Regional (\${municipio} - Sul Fluminense)\`, situacao: "Enquadrado" });
       } else {
-        matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: \`Abrangência Regional (\${municipio})\`, situacao: "Enquadrado" });
       }
     }
 
-    // Indústria Gráfica e Editorial (Divisões 181, 182, 581, 582)
     if (cnae.startsWith("181") || cnae.startsWith("182") || cnae.startsWith("581") || cnae.startsWith("582")) {
       if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Município do Rio de Janeiro - SIGRAF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Município do Rio de Janeiro - SIGRAF", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Petrópolis - SIGRAP", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Petrópolis - SIGRAP", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Nova Friburgo - SINDGRAF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Nova Friburgo - SINDGRAF", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Campos - SINDGRAF CAMPOS", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Campos - SINDGRAF CAMPOS", regra: \`Abrangência Regional (\${municipio} - Norte Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas no Noroeste do Estado do Rio de Janeiro - SINDGRAF NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas no Noroeste do Estado do Rio de Janeiro - SINDGRAF NOROESTE", regra: \`Abrangência Regional (\${municipio} - Noroeste Fluminense)\`, situacao: "Enquadrado" });
       } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Sul Fluminense - SINGRASUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Sul Fluminense - SINGRASUL", regra: \`Abrangência Regional (\${municipio} - Sul Fluminense)\`, situacao: "Enquadrado" });
       } else {
         matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Estado do Rio de Janeiro - SIGRARJ", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
       }
     }
 
-    // Químico Específico: Tintas e Sabão na Capital RJ
     if (munNorm === "RIODEJANEIRO") {
       if (cnae.startsWith("2071") || cnae.startsWith("2072") || cnae.startsWith("20916")) {
-        matches.push({ sindicato: "Sind das Inds de Tintas e Vernizes e de Preparação de Óleos Vegetais e Animais do Mun do RJ - SINTIRJ", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sind das Inds de Tintas e Vernizes e de Preparação de Óleos Vegetais e Animais do Mun do RJ - SINTIRJ", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       }
       if (cnae.startsWith("20614") || cnae.startsWith("3299006")) {
-        matches.push({ sindicato: "Sindicato da Indústria de Sabão e Velas do Município RJ - SISAVERJ", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
+        matches.push({ sindicato: "Sindicato da Indústria de Sabão e Velas do Município RJ - SISAVERJ", regra: \`Abrangência Municipal (\${municipio})\`, situacao: "Enquadrado" });
       }
     }
 
