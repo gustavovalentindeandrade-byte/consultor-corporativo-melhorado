@@ -310,14 +310,14 @@
                 <textarea id="cnpjInput" class="form-control font-monospace mb-3" rows="6" placeholder="33.000.167/0001-01&#10;12.345.678/0001-99&#10;28.123.456/0001-77"></textarea>
 
                 <div class="d-grid gap-2 mb-3">
-                  <button id="btnProcessar" class="btn btn-consultor py-2 shadow-sm" onclick="executarProcessamento()">
+                  <button id="btnProcessar" class="btn btn-consultor py-2 shadow-sm" type="button" onclick="executarProcessamento()">
                     <i class="fa-solid fa-bolt me-1"></i> Processar Consulta e Enquadramento
                   </button>
                   <div class="btn-group">
-                    <button id="btnCarregarExemplos" class="btn btn-outline-secondary btn-sm" onclick="carregarExemplos()">
+                    <button id="btnCarregarExemplos" class="btn btn-outline-secondary btn-sm" type="button" onclick="carregarExemplos()">
                       <i class="fa-solid fa-file-import me-1"></i> Carregar Exemplos
                     </button>
-                    <button id="btnLimpar" class="btn btn-outline-danger btn-sm" onclick="limparTudo()">
+                    <button id="btnLimpar" class="btn btn-outline-danger btn-sm" type="button" onclick="limparTudo()">
                       <i class="fa-solid fa-trash me-1"></i> Limpar
                     </button>
                   </div>
@@ -328,13 +328,13 @@
                 <!-- Exportação e Ações -->
                 <div class="fw-bold text-dark small mb-2"><i class="fa-solid fa-download me-1 text-primary"></i>Exportação e Relatórios</div>
                 <div class="d-grid gap-2">
-                  <button id="btnExportarExcel" class="btn btn-success btn-sm text-start py-2" onclick="exportarExcel()">
+                  <button id="btnExportarExcel" class="btn btn-success btn-sm text-start py-2" type="button" onclick="exportarExcel()">
                     <i class="fa-solid fa-file-excel me-2"></i> Exportar Excel (.xlsx Completo 4 Abas)
                   </button>
-                  <button id="btnCopiarTsv" class="btn btn-outline-primary btn-sm text-start" onclick="copiarTsv()">
+                  <button id="btnCopiarTsv" class="btn btn-outline-primary btn-sm text-start" type="button" onclick="copiarTsv()">
                     <i class="fa-solid fa-copy me-2"></i> Copiar Tabela (TSV / Área de Transf.)
                   </button>
-                  <button id="btnImprimirPdf" class="btn btn-outline-dark btn-sm text-start" onclick="imprimirRelatorio()">
+                  <button id="btnImprimirPdf" class="btn btn-outline-dark btn-sm text-start" type="button" onclick="imprimirRelatorio()">
                     <i class="fa-solid fa-print me-2"></i> Imprimir / Gerar PDF Executivo
                   </button>
                 </div>
@@ -386,7 +386,7 @@
               <div class="card-custom p-5 text-center text-muted">
                 <i class="fa-solid fa-building-circle-check fs-1 text-secondary opacity-50 mb-3 d-block"></i>
                 <h6 class="fw-bold text-dark">Nenhuma empresa consultada no momento.</h6>
-                <p class="small mb-0">Insira os CNPJs no painel à esquerda e clique em <strong>Processar Consulta e Enquadramento</strong> para iniciar a análise.</p>
+                <p class="small mb-0">Insira os CNPJs no painel à esquerda e clique em <strong>Processar Consulta e Enquadramento</strong>.</p>
               </div>
             </div>
 
@@ -480,11 +480,10 @@
   // NÚCLEO DETERMINÍSTICO E REGRAS OFICIAIS FIRJAN
   // =========================================================================
 
-  const cleanNumber = (v) => v ? String(v).replace(/\D/g, '') : '';
-  const cleanText = (t) => t ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '') : '';
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  function cleanNumber(v) { return v ? String(v).replace(/\D/g, '') : ''; }
+  function cleanText(t) { return t ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '') : ''; }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // 16 CNAEs expressamente "Fora do Perfil"
   const CNAES_FORA = new Set([
     "5612100", "6410700", "6423900", "8299704", "8299707", "8422100",
     "8423000", "8424800", "8425600", "8430200", "9200301", "9200302",
@@ -558,7 +557,6 @@
   };
 
   const SINDICATOS_CATALOGO = [
-    // 17 Nacionais
     {"sigla": "SIMDE", "nome": "Sindicato Nacional das Indústrias de Materiais de Defesa - SIMDE", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2550101, 2550102, 2092401, 3050400, 3292201"},
     {"sigla": "SNIEC", "nome": "Sindicato Nacional da Indústria da Extração de Carvão - SNIEC", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "Divisão 05 (0500301, 0500302)"},
     {"sigla": "SINFERBASE", "nome": "Sindicato Nacional da Indústria da Extração do Ferro e Metais Básicos - SINFERBASE", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "0710301, 0710302, 0721901, 0721902, 0723501, 0723502, 0729401-0729405, 0990401, 0990402"},
@@ -576,8 +574,6 @@
     {"sigla": "SIND.AÇO", "nome": "Sindicato Nacional da Indústria de Aço - SIND.AÇO", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "Grupos 242, 243, 2451200, 2531401"},
     {"sigla": "SINALCALIS", "nome": "Sindicato Nacional da Indústria de Álcalis - SINALCALIS", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2011800"},
     {"sigla": "SIR - SINDREFRATARIO", "nome": "Sindicato Nacional da Indústria de Refratários - SIR - SINDREFRATARIO", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2341900"},
-
-    // 29 Estaduais do RJ
     {"sigla": "SIMARJ", "nome": "Sindicato dos Mineradores de Areia do Estado do Rio de Janeiro - SIMARJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "0600003, 0810006"},
     {"sigla": "SINDISAL", "nome": "Sindicato da Indústria de Refinação e Moagem de Sal do Estado do Rio de Janeiro - SINDISAL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "0892403"},
     {"sigla": "SIPERJ", "nome": "Sindicato da Indústria do Pescado do Estado do Rio de Janeiro - SIPERJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1020101, 1020102"},
@@ -607,8 +603,6 @@
     {"sigla": "SIQUIRJ", "nome": "Sindicato da Indústria de Produtos Químicos para Fins Industriais do Estado do RJ - SIQUIRJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Divisões 19 e 20 (exceto específicos), 3299002, 3839401, 3839499"},
     {"sigla": "SIGRARJ", "nome": "Sindicato das Indústrias Gráficas do Estado do Rio de Janeiro - SIGRARJ", "ambito": "Estadual RJ", "abrang": "Municípios do RJ sem sindicato gráfico municipal", "cnaes": "Divisão 181, 182, 581, 582"},
     {"sigla": "RJ METAL", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico no Estado do Rio de Janeiro - RJ METAL", "ambito": "Estadual RJ", "abrang": "Municípios do RJ sem representação metalmecânica específica", "cnaes": "Divisões 24, 25, 27, 28, 30, 33, 3831901"},
-
-    // 55 Regionais e Municipais do Rio de Janeiro
     {"sigla": "SINDGNAISSES", "nome": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES", "ambito": "Regional", "abrang": "Região Noroeste Fluminense", "cnaes": "0810099"},
     {"sigla": "SINDIBRITA", "nome": "Sind da Indústria de Mineração de Brita no Estado do Rio de Janeiro - SINDIBRITA", "ambito": "Estadual RJ", "abrang": "Municípios do RJ (exceto Noroeste)", "cnaes": "0810099"},
     {"sigla": "SICCC", "nome": "Sindicato da Indústria de Cerâmica para Construção de Campos - SICCC", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "2342701, 2342702, 2349401, 2349499"},
@@ -730,7 +724,6 @@
 
     const matches = [];
 
-    // 1. Nacionais
     for (const s of SINDICATOS_NACIONAIS) {
       if (s.prefix.some(p => p.test(cnae))) {
         matches.push({ sindicato: s.nome, regra: s.regra, situacao: "Enquadrado" });
@@ -741,7 +734,6 @@
       return matches;
     }
 
-    // 2. Estaduais RJ
     for (const s of SINDICATOS_ESTADUAIS_RJ) {
       if (s.prefix.some(p => p.test(cnae))) {
         if ((cnae === "0810003" || cnae === "2391503") && (REGIOES_RJ.BAIXADA.includes(munNorm) || ["ANGRADOSREIS", "PARATY", "MANGARATIBA"].includes(munNorm))) {
@@ -753,7 +745,6 @@
       }
     }
 
-    // 3. Regionais RJ
     if ((cnae === "0810003" || cnae === "2391503") && (REGIOES_RJ.BAIXADA.includes(munNorm) || ["ANGRADOSREIS", "PARATY", "MANGARATIBA"].includes(munNorm))) {
       matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Mármores na Baixada/Costa Verde)`, situacao: "Enquadrado" });
     }
@@ -1146,6 +1137,25 @@
       ],
       qsa: [{ nome_socio: "Carlos Eduardo Silva" }]
     },
+    "27865757000102": {
+      cnpj: "27865757000102",
+      razao_social: "CONFECCOES SUL FLUMINENSE LTDA",
+      nome_fantasia: "MODA SUL",
+      descricao_situacao_cadastral: "ATIVA",
+      data_inicio_atividade: "2017-02-14",
+      porte: "MICRO EMPRESA",
+      logradouro: "RUA ALBINO DE ALMEIDA",
+      numero: "150",
+      complemento: "",
+      bairro: "CAMPOS ELISEOS",
+      municipio: "RESENDE",
+      uf: "RJ",
+      cep: "27542010",
+      cnae_fiscal: "1412601",
+      cnae_fiscal_descricao: "Confecção de peças do vestuário, exceto roupas íntimas",
+      cnaes_secundarios: [],
+      qsa: [{ nome_socio: "Juliana Mendes" }]
+    },
     "04123456000188": {
       cnpj: "04123456000188",
       razao_social: "INDUSTRIA NOROESTE DE ALIMENTOS E EMBALAGENS LTDA",
@@ -1167,25 +1177,6 @@
         { codigo: "2599399", descricao: "Fabricação de outros produtos de metal" }
       ],
       qsa: [{ nome_socio: "Fernando Rocha" }]
-    },
-    "27865757000102": {
-      cnpj: "27865757000102",
-      razao_social: "CONFECCOES SUL FLUMINENSE LTDA",
-      nome_fantasia: "MODA SUL",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "2017-02-14",
-      porte: "MICRO EMPRESA",
-      logradouro: "RUA ALBINO DE ALMEIDA",
-      numero: "150",
-      complemento: "",
-      bairro: "CAMPOS ELISEOS",
-      municipio: "RESENDE",
-      uf: "RJ",
-      cep: "27542010",
-      cnae_fiscal: "1412601",
-      cnae_fiscal_descricao: "Confecção de peças do vestuário, exceto roupas íntimas",
-      cnaes_secundarios: [],
-      qsa: [{ nome_socio: "Juliana Mendes" }]
     }
   };
 
@@ -1203,7 +1194,7 @@
         return await res1.json();
       }
     } catch (e) {
-      console.warn("BrasilAPI indisponível, tentando provedor alternativo...", e);
+      console.warn("BrasilAPI falhou ou timeout.", e);
     }
 
     try {
@@ -1237,17 +1228,17 @@
         };
       }
     } catch (e) {
-      console.warn("Provedor alternativo também falhou.", e);
+      console.warn("CNPJ.ws falhou.", e);
     }
 
     return {
       cnpj: cnpj,
       razao_social: `EMPRESA CONSULTADA (CNPJ ${cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")})`,
-      nome_fantasia: "NÃO DISPONÍVEL NA CONSULTA ON-LINE",
+      nome_fantasia: "CONSULTA OFFLINE (SIMULADOR FIRJAN)",
       descricao_situacao_cadastral: "ATIVA (ESTIMADA)",
       data_inicio_atividade: "Data não recuperada",
       porte: "DEMAIS",
-      logradouro: "Endereço cadastrado na RFB",
+      logradouro: "Endereço RFB",
       numero: "S/N",
       complemento: "",
       bairro: "Centro",
@@ -1255,11 +1246,11 @@
       uf: "RJ",
       cep: "20000-000",
       cnae_fiscal: "2511000",
-      cnae_fiscal_descricao: "Fabricação de estruturas metálicas (Padrão para demonstração)",
+      cnae_fiscal_descricao: "Fabricação de estruturas metálicas (Simulação offline)",
       cnaes_secundarios: [
         { codigo: "4120400", descricao: "Construção de edifícios" }
       ],
-      qsa: [{ nome_socio: "Quadro de sócios acessível no cartão CNPJ" }],
+      qsa: [{ nome_socio: "Quadro societário acessível no cartão CNPJ" }],
       avisoOffline: true
     };
   }
@@ -1268,18 +1259,23 @@
   // FUNÇÕES GLOBAIS DE CONTROLE DA INTERFACE
   // =========================================================================
 
-  function mudarAba(abaId) {
-    document.querySelectorAll('#mainTabs .nav-link').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content > .tab-pane').forEach(p => {
-      p.classList.remove('active', 'show');
+  function mudarAba(paneId) {
+    document.querySelectorAll('#mainTabs .nav-link').forEach(btn => {
+      btn.classList.remove('active');
     });
 
-    const btnAlvo = document.querySelector(`[onclick*="${abaId}"]`) || document.querySelector(`[data-bs-target="#${abaId}"]`);
+    const btnAlvo = document.querySelector(`[onclick*="${paneId}"]`) || document.querySelector(`[data-bs-target="#${paneId}"]`);
     if (btnAlvo) btnAlvo.classList.add('active');
 
-    const painel = document.getElementById(abaId);
-    if (painel) {
-      painel.classList.add('active', 'show');
+    document.querySelectorAll('.tab-content > .tab-pane').forEach(p => {
+      p.classList.remove('show', 'active');
+      p.style.display = 'none';
+    });
+
+    const targetPane = document.getElementById(paneId);
+    if (targetPane) {
+      targetPane.classList.add('show', 'active');
+      targetPane.style.display = 'block';
     }
   }
 
@@ -1288,16 +1284,18 @@
     const cnpjCountBadge = document.getElementById('cnpjCountBadge');
     if (cnpjInput) {
       cnpjInput.value = [
-        "33.000.167/0001-01", // Petrobras (RJ Capital)
-        "00.000.000/0001-91", // Banco do Brasil (Fora do Perfil)
-        "12.345.678/0001-99", // Padaria Modelo (Niterói)
-        "28.123.456/0001-77", // Metalúrgica Caxias (Baixada)
-        "27.865.757/0001-02", // Vestuário Sul Fluminense (Resende - Consultar Especialista)
-        "04.123.456/0001-88"  // Alimentos Itaperuna (Noroeste)
+        "33.000.167/0001-01",
+        "00.000.000/0001-91",
+        "12.345.678/0001-99",
+        "28.123.456/0001-77",
+        "27.865.757/0001-02",
+        "04.123.456/0001-88"
       ].join("\n");
-      if (cnpjCountBadge) cnpjCountBadge.innerText = "6 inserido(s)";
-      executarProcessamento();
     }
+    if (cnpjCountBadge) {
+      cnpjCountBadge.innerText = "6 inserido(s)";
+    }
+    executarProcessamento();
   }
 
   function limparTudo() {
@@ -1458,7 +1456,6 @@
             </h2>
             <div id="collapseSec-${emp.id}" class="accordion-collapse collapse">
               <div class="accordion-body p-3">
-                
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <div class="btn-group filter-btn-group" role="group">
                     <button type="button" class="btn btn-outline-primary active btn-filter" data-target="empresa-card-${emp.id}" data-filter="TODOS">Todos (${totalSec})</button>
@@ -1467,7 +1464,6 @@
                   </div>
                   <span class="small text-muted fst-italic">Análise independente de cada CNAE secundário</span>
                 </div>
-
                 <div class="table-responsive">
                   <table class="table table-sm table-secundarios table-hover">
                     <thead>
@@ -1484,7 +1480,6 @@
                     </tbody>
                   </table>
                 </div>
-
               </div>
             </div>
           </div>
@@ -1520,7 +1515,6 @@
 
       <div class="company-body">
         <div class="row g-3">
-          
           <div class="col-lg-5">
             <div class="box-endereco-destaque">
               <div class="fw-bold text-dark small mb-2 border-bottom pb-1">
@@ -1531,7 +1525,6 @@
               <div class="small mb-1"><strong>Bairro / Distrito:</strong> <span class="badge bg-light text-dark border">${emp.bairro}</span></div>
               <div class="small mb-1"><strong>Município / UF:</strong> <strong>${emp.municipio} - ${emp.uf}</strong></div>
               <div class="small mb-2"><strong>CEP:</strong> <span class="font-monospace">${emp.cep}</span></div>
-              
               <div class="small border-top pt-2 mt-2">
                 <div><strong>Data de Abertura:</strong> ${emp.dataAbertura}</div>
                 <div><strong>Quadro de Sócios (QSA):</strong> <span class="text-secondary">${emp.socios}</span></div>
@@ -1545,18 +1538,15 @@
                 <span class="fw-bold text-dark small"><i class="fa-solid fa-certificate me-1 text-primary"></i>ENQUADRAMENTO SINDICAL OFICIAL (CNAE PRINCIPAL)</span>
                 <span class="badge ${ep.badgeClass} shadow-sm">${ep.situacao}</span>
               </div>
-
               <div class="mb-2">
                 <div class="small text-muted">Sindicato Patronal Competente:</div>
                 <div class="sindicato-titulo">${ep.sindicato}</div>
               </div>
-
               <div class="small mb-2">
                 <strong>Atividade Preponderante:</strong><br>
                 <span class="badge bg-primary font-monospace me-1">${emp.cnaePrincipal.code}</span>
                 <span class="text-dark">${emp.cnaePrincipal.desc}</span>
               </div>
-
               <div class="regra-box">
                 <div class="small"><strong>Regra / Fundamento Aplicado:</strong></div>
                 <div class="text-dark small">${ep.regra}</div>
@@ -1564,21 +1554,26 @@
               </div>
             </div>
           </div>
-
         </div>
 
         ${secundariosHtml}
-
       </div>
     `;
 
     if (resultsContainer) resultsContainer.appendChild(card);
   }
 
-  function toggleAccordion(elementId) {
-    const el = document.getElementById(elementId);
+  function toggleAccordion(collapseId) {
+    const el = document.getElementById(collapseId);
     if (el) {
-      el.classList.toggle('show');
+      const isShown = el.classList.contains('show') || el.style.display === 'block';
+      if (isShown) {
+        el.classList.remove('show');
+        el.style.display = 'none';
+      } else {
+        el.classList.add('show');
+        el.style.display = 'block';
+      }
     }
   }
 
@@ -1732,7 +1727,7 @@
 
   function imprimirRelatorio() {
     if (!arrayResultadosGlobais || arrayResultadosGlobais.length === 0) {
-      alert("Não há dados para imprimir. Realize uma consulta primeiro.");
+      alert("Não há dados para imprimir.");
       return;
     }
     document.querySelectorAll('.accordion-collapse').forEach(el => el.classList.add('show'));
@@ -1761,7 +1756,6 @@
     });
   }
 
-  // Delegação global dos botões de filtro dos CNAEs secundários
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('.btn-filter');
     if (!btn) return;
@@ -1786,7 +1780,7 @@
     });
   });
 
-  // Exportar todas as funções para o objeto global window
+  // Exportar todas as funções para o escopo global window
   window.mudarAba = mudarAba;
   window.carregarExemplos = carregarExemplos;
   window.limparTudo = limparTudo;
@@ -1797,7 +1791,6 @@
   window.imprimirRelatorio = imprimirRelatorio;
   window.renderCatalogo = renderCatalogo;
 
-  // Inicialização no DOM
   function inicializarEventos() {
     const cnpjInput = document.getElementById('cnpjInput');
     const cnpjCountBadge = document.getElementById('cnpjCountBadge');
@@ -1807,13 +1800,33 @@
         cnpjCountBadge.innerText = `${list.length} inserido(s)`;
       });
     }
+
+    // Vinculação imperativa nos botões para garantir redundância ao onclick
+    const btnCarregar = document.getElementById('btnCarregarExemplos');
+    if (btnCarregar) btnCarregar.onclick = carregarExemplos;
+
+    const btnProc = document.getElementById('btnProcessar');
+    if (btnProc) btnProc.onclick = executarProcessamento;
+
+    const btnLimp = document.getElementById('btnLimpar');
+    if (btnLimp) btnLimp.onclick = limparTudo;
+
+    const btnExp = document.getElementById('btnExportarExcel');
+    if (btnExp) btnExp.onclick = exportarExcel;
+
+    const btnCop = document.getElementById('btnCopiarTsv');
+    if (btnCop) btnCop.onclick = copiarTsv;
+
+    const btnImp = document.getElementById('btnImprimirPdf');
+    if (btnImp) btnImp.onclick = imprimirRelatorio;
+
     renderCatalogo();
   }
 
+  // Inicializa imediatamente e também no DOMContentLoaded
+  inicializarEventos();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', inicializarEventos);
-  } else {
-    inicializarEventos();
   }
   </script>
 
