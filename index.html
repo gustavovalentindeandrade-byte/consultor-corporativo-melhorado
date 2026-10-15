@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome 6.4 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SheetJS para Exportação Excel Completa -->
+  <!-- SheetJS para Exportação Excel Completa e Leitura da Planilha Oficial -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     :root {
@@ -240,6 +240,25 @@
       display: block !important;
     }
 
+    /* Estilos do Loading do Motor Oficial */
+    #loadingMotorOficial {
+      background: rgba(255, 255, 255, 0.95);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+
+    #loadingMotorOficial h4 {
+      color: var(--corp-primary);
+      font-weight: 700;
+      margin-top: 15px;
+    }
+
     @media print {
       body { background: white; }
       .no-print { display: none !important; }
@@ -252,6 +271,15 @@
 </head>
 <body>
 
+  <!-- Tela de Carregamento Inicial (Motor Oficial) -->
+  <div id="loadingMotorOficial">
+    <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
+      <span class="visually-hidden">Carregando...</span>
+    </div>
+    <h4>Carregando Motor Oficial FIRJAN...</h4>
+    <p class="text-muted" id="loadingMotorText">Lendo Simulador de Triagem.xlsx (1.355 CNAEs e 49.564 Regras)</p>
+  </div>
+
   <!-- Top Navigation -->
   <nav class="navbar navbar-dark shadow-sm no-print">
     <div class="container d-flex justify-content-between align-items-center">
@@ -262,7 +290,7 @@
       </a>
       <div class="d-flex align-items-center gap-2">
         <span class="badge bg-success text-white py-2 px-3 shadow-sm">
-          <i class="fa-solid fa-circle-check me-1"></i> 100% Regras Oficiais Integradas
+          <i class="fa-solid fa-circle-check me-1"></i> 100% Regras Oficiais (Planilha Integrada)
         </span>
       </div>
     </div>
@@ -351,8 +379,8 @@
                   <li class="mb-1"><strong>CNAE Principal:</strong> Define a atividade preponderante e o enquadramento patronal oficial da empresa.</li>
                   <li class="mb-1"><strong>CNAEs Secundários:</strong> Analisados individualmente em seção detalhada, sem alterar a regra principal.</li>
                   <li class="mb-1"><strong>Endereço Desmembrado:</strong> Exibição clara de Bairro/Distrito, Logradouro, Número, Município e CEP.</li>
-                  <li class="mb-1"><strong>Hierarquia Territorial:</strong> Entidades Nacionais para qualquer UF; Estaduais e Regionais/Municipais exclusivas do Estado do RJ.</li>
-                  <li><strong>Zero Dependência Externa:</strong> 1.355 CNAEs e regras pré-compiladas no núcleo da aplicação.</li>
+                  <li class="mb-1"><strong>Hierarquia Territorial:</strong> Regras extraídas diretamente da planilha Simulador de Triagem.</li>
+                  <li><strong>Zero Dependência Externa:</strong> 1.355 CNAEs e regras da FIRJAN processadas integralmente no navegador.</li>
                 </ul>
               </div>
             </div>
@@ -400,21 +428,18 @@
         <div class="card-custom">
           <div class="card-header-custom d-flex justify-content-between align-items-center">
             <span><i class="fa-solid fa-sitemap me-2"></i>Catálogo Oficial dos 101 Sindicatos Patronais Filiados à FIRJAN</span>
-            <input type="text" id="filtroCatalogo" class="form-control form-control-sm w-auto" placeholder="Filtrar por sigla, nome ou setor..." oninput="renderCatalogo(this.value)">
+            <input type="text" id="filtroCatalogo" class="form-control form-control-sm w-auto" placeholder="Filtrar por sigla, nome..." oninput="renderCatalogo(this.value)">
           </div>
           <div class="table-responsive p-3">
             <table class="table table-hover table-striped table-sm align-middle" id="tabelaCatalogoSindicatos">
               <thead class="table-dark">
                 <tr>
-                  <th style="width: 12%">Sigla</th>
-                  <th style="width: 40%">Nome Completo do Sindicato Oficial</th>
-                  <th style="width: 15%">Âmbito</th>
-                  <th style="width: 18%">Abrangência Territorial</th>
-                  <th style="width: 15%">CNAEs / Divisões</th>
+                  <th style="width: 15%">Sigla</th>
+                  <th style="width: 85%">Nome Completo do Sindicato Oficial</th>
                 </tr>
               </thead>
               <tbody id="corpoCatalogoSindicatos">
-                <!-- Preenchido via JavaScript -->
+                <!-- Preenchido via JavaScript (Aba De Para) -->
               </tbody>
             </table>
           </div>
@@ -433,7 +458,7 @@
               <div class="p-3 bg-light border rounded">
                 <h6 class="fw-bold text-dark"><i class="fa-solid fa-1 me-1 text-primary"></i> Atividade Preponderante (CNAE Principal)</h6>
                 <p class="small text-muted mb-0">
-                  A definição do sindicato patronal representativo é orientada pela atividade econômica principal da empresa (objeto social efetivo e receita preponderante), identificada na Receita Federal do Brasil por seu código de CNAE Fiscal de 7 dígitos.
+                  A definição do sindicato patronal representativo é orientada pela atividade econômica principal da empresa, identificada na Receita Federal do Brasil por seu código de CNAE Fiscal de 7 dígitos. O motor extrai as atividades exatas da planilha de Triagem (Aba Estrutura CNAE).
                 </p>
               </div>
             </div>
@@ -441,7 +466,7 @@
               <div class="p-3 bg-light border rounded">
                 <h6 class="fw-bold text-dark"><i class="fa-solid fa-2 me-1 text-primary"></i> Princípio da Territorialidade</h6>
                 <p class="small text-muted mb-0">
-                  A base territorial do estabelecimento define a entidade patronal competente. Entidades nacionais atuam em todo o território brasileiro; sindicatos estaduais atuam nos 92 municípios fluminenses; e entidades regionais ou municipais possuem precedência territorial estrita sobre suas respectivas comarcas.
+                  A base territorial do estabelecimento define a entidade patronal competente. Entidades nacionais atuam em todo o território brasileiro; sindicatos estaduais atuam nos 92 municípios fluminenses. Tudo cruzado e lido da Aba Abrangência dos Sindicatos (49 mil chaves).
                 </p>
               </div>
             </div>
@@ -449,15 +474,15 @@
               <div class="p-3 bg-light border rounded">
                 <h6 class="fw-bold text-dark"><i class="fa-solid fa-3 me-1 text-primary"></i> Análise de CNAEs Secundários</h6>
                 <p class="small text-muted mb-0">
-                  Empresas com múltiplas atividades econômicas industriais ou mistas (comércio/indústria) possuem cada um dos seus CNAEs secundários mapeados, permitindo identificar oportunidades de agregação de valor e enquadramento complementar sem descaracterizar a atividade principal.
+                  Empresas com múltiplas atividades econômicas industriais ou mistas (comércio/indústria) possuem cada um dos seus CNAEs secundários mapeados e exibidos na seção detalhada de cada Card.
                 </p>
               </div>
             </div>
             <div class="col-md-6">
               <div class="p-3 bg-light border rounded">
-                <h6 class="fw-bold text-dark"><i class="fa-solid fa-4 me-1 text-primary"></i> Resolução de Conflitos e Casos Específicos</h6>
+                <h6 class="fw-bold text-dark"><i class="fa-solid fa-4 me-1 text-primary"></i> Resolução de Casos Específicos</h6>
                 <p class="small text-muted mb-0">
-                  Atividades de alta especialização (ex: Indústrias de Defesa - SIMDE, Refratários - SIR, Cimento - SNIC, Estanho - SNIEE) possuem precedência direta como sindicatos de âmbito nacional sobre enquadramentos regionais genéricos.
+                  CNAEs enquadrados como "Consultar Especialista" no arquivo Excel, seja por divergência regional ou hibridismo comercial, são classificados apropriadamente e orientados à consulta especializada.
                 </p>
               </div>
             </div>
@@ -477,578 +502,223 @@
 
   <script>
   // =========================================================================
-  // NÚCLEO DETERMINÍSTICO E REGRAS OFICIAIS FIRJAN
+  // MOTOR DE AUDITORIA E ENQUADRAMENTO EXATO - LÊ DIRETO DA PLANILHA EXCEL
   // =========================================================================
 
   function cleanNumber(v) { return v ? String(v).replace(/\D/g, '') : ''; }
   function cleanText(t) { return t ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '') : ''; }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  const CNAES_FORA = new Set([
-    "5612100", "6410700", "6423900", "8299704", "8299707", "8422100",
-    "8423000", "8424800", "8425600", "8430200", "9200301", "9200302",
-    "9200399", "9420100", "9609204", "9700500"
-  ]);
+  // Estruturas em memória extraídas da planilha Simulador de Triagem.xlsx
+  const ESTRUTURA_CNAE = new Map(); // chave: "0111301" (7 dígitos normais) -> { descricao, tipoAssociacao, tipoNegocio, cnaeSemZero }
+  const ABRANGENCIA = new Map();    // chave normalizada: "1921700|riodejaneiro|rj" ou "500301||sp" -> "Sindicato - SIGLA"
+  const DE_PARA_SIGLAS = new Map(); // chave: "Sindicato - SIGLA" -> { nome, sigla, chave }
+  const CATALOGO_ARRAY = [];
+  
+  let arrayResultadosGlobais = [];
+  let motorOficialCarregado = false;
 
-  function getCnaeInfoDinamico(cnaeClean) {
-    const code = String(cnaeClean || '').padStart(7, '0');
-    const div = parseInt(code.substring(0, 2), 10);
-
-    if (CNAES_FORA.has(code)) {
-      return { subclasse: code.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"), desc: "Atividade Comercial / Serviços fora do perfil industrial", assoc: "Fora do Perfil", neg: "Comércio e Serviço", ind: false };
-    }
-
-    const isInd = (div >= 5 && div <= 33) || (div >= 41 && div <= 43) || div === 38;
-    return {
-      subclasse: code.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"),
-      desc: isInd ? "Atividade Industrial / Construção" : "Comércio / Serviços",
-      assoc: isInd ? "Sindicato" : "Consultar Especialista",
-      neg: isInd ? "Indústria" : "Comércio e Serviço",
-      ind: isInd
-    };
-  }
-
-  const baseCNAEs = new Proxy({}, {
-    get(target, prop) {
-      if (typeof prop !== 'string' || !/^\d{5,7}$/.test(prop)) return target[prop];
-      const clean = prop.padStart(7, '0');
-      return target[clean] || getCnaeInfoDinamico(clean);
-    }
-  });
-
-  const REGIOES_RJ = {
-    CAPITAL: ["RIODEJANEIRO"],
-    PETROPOLIS: ["PETROPOLIS"],
-    NOROESTE: [
-      "APERIBE", "BOMJESUSDOITABAPOANA", "CAMBUCI", "ITALVA", "ITAOCARA",
-      "ITAPERUNA", "LAJEDOMURIAE", "MIRACEMA", "NATIVIDADE", "PORCIUNCULA",
-      "SANTOANTONIODEPADUA", "SAOJOSEDEUBA", "VARRESAI"
-    ],
-    NORTE: [
-      "CAMPOSDOSGOYTACAZES", "CARAPEBUS", "CARDOSOMOREIRA", "CONCEICAODEMACABU",
-      "MACAE", "QUISSAMA", "SAOFIDELIS", "SAOFRANCISCODEITABAPOANA", "SAOJOAODABARRA"
-    ],
-    BAIXADA: [
-      "BELFORDROXO", "DUQUEDECAXIAS", "GUAPIMIRIM", "ITAGUAI", "JAPERI",
-      "MAGE", "MANGARATIBA", "MESQUITA", "NILOPOLIS", "NOVAIGUACU",
-      "PARACAMBI", "QUEIMADOS", "SAOJOAODEMERITI", "SEROPEDICA"
-    ],
-    LESTE_LAGOS: [
-      "NITEROI", "SAOGONCALO", "ITABORAI", "MARICA", "TANGUA", "RIOBONITO",
-      "SILVAJARDIM", "ARARUAMA", "ARMACAODOSBUZIOS", "ARRAIALDOCABO",
-      "CABOFRIO", "CASIMIRODEABREU", "IGUABAGRANDE", "RIODASOSTRAS",
-      "SAOPEDRODAALDEIA", "SAQUAREMA", "TERESOPOLIS"
-    ],
-    SERRANA: [
-      "NOVAFRIBURGO", "BOMJARDIM", "CACHOEIRASDEMACACU", "CANTAGALO",
-      "CARMO", "CORDEIRO", "DUASBARRAS", "MACUCO", "SANTAMARIAMADALENA",
-      "SAOSEBASTIAODOALTO", "SUMIDOURO", "TRAJANODEMORAIS"
-    ],
-    CENTRO_SUL: [
-      "AREAL", "COMENDADORLEVYGASPARIAN", "PARAIBADOSUL",
-      "SAOJOSEDOVALEDORIOPRETO", "SAPUCAIA", "TRESRIOS"
-    ],
-    SUL_MEDIO_PARAIBA: [
-      "BARRADOPIRAI", "BARRAMANSA", "ENGENHEIROPAULODEOFRONTIN", "ITATIAIA",
-      "MENDES", "MIGUELPEREIRA", "PATYDOALFERES", "PINHEIRAL", "PIRAI",
-      "PORTOREAL", "QUATIS", "RESENDE", "RIOCLARO", "RIODASFLORES",
-      "VALENCA", "VASSOURAS", "VOLTAREDONDA", "ANGRADOSREIS", "PARATY"
-    ]
-  };
-
-  const SINDICATOS_CATALOGO = [
-    {"sigla": "SIMDE", "nome": "Sindicato Nacional das Indústrias de Materiais de Defesa - SIMDE", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2550101, 2550102, 2092401, 3050400, 3292201"},
-    {"sigla": "SNIEC", "nome": "Sindicato Nacional da Indústria da Extração de Carvão - SNIEC", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "Divisão 05 (0500301, 0500302)"},
-    {"sigla": "SINFERBASE", "nome": "Sindicato Nacional da Indústria da Extração do Ferro e Metais Básicos - SINFERBASE", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "0710301, 0710302, 0721901, 0721902, 0723501, 0723502, 0729401-0729405, 0990401, 0990402"},
-    {"sigla": "SNIEE", "nome": "Sindicato Nacional da Indústria da Extração do Estanho - SNIEE", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "0722701, 0722702"},
-    {"sigla": "SINDIRAÇÕES", "nome": "Sindicato Nacional da Indústria de Alimentação Animal - SINDIRAÇÕES", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "1066000"},
-    {"sigla": "SINDICERV", "nome": "Sindicato Nacional da Industria da Cerveja - SINDICERV", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "1113502"},
-    {"sigla": "SINDINAM", "nome": "Sindicato Nacional da Indústria de Águas Minerais - SINDINAM", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "1099604, 1121600"},
-    {"sigla": "SNIFOS", "nome": "Sindicato Nacional da Indústria de Fósforos - SNIFOS", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2092403"},
-    {"sigla": "SINDAN", "nome": "Sindicato Nacional da Indústria de Produtos para a Saúde Animal - SINDAN", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2122000"},
-    {"sigla": "SINFAVEA", "nome": "Sindicato Nacional da Indústria de Tratores, Caminhões, Automóveis e Veículos Similares - SINFAVEA", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2831300, 2853400, 2910701, 2920401, 3050400"},
-    {"sigla": "SINDIPEÇAS", "nome": "Sindicato Nacional da Indústria de Componentes para Veículos Automotores - SINDIPEÇAS", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2910702, 2910703, 2920402, Divisão 294"},
-    {"sigla": "SNIC", "nome": "Sind. Nacional da Ind. do Cimento - SNIC", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2320600"},
-    {"sigla": "SINICON", "nome": "Sind. Nacional da Ind. da Construção Pesada - SINICON", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "4291000, Obras Marítimas e Portuárias, Obras de Grande Porte"},
-    {"sigla": "SINAVAL", "nome": "Sind. Nacional da Ind. da Construção Naval - SINAVAL", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "3011301, 3011302, 3012100, 3317101, 3317102"},
-    {"sigla": "SIND.AÇO", "nome": "Sindicato Nacional da Indústria de Aço - SIND.AÇO", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "Grupos 242, 243, 2451200, 2531401"},
-    {"sigla": "SINALCALIS", "nome": "Sindicato Nacional da Indústria de Álcalis - SINALCALIS", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2011800"},
-    {"sigla": "SIR - SINDREFRATARIO", "nome": "Sindicato Nacional da Indústria de Refratários - SIR - SINDREFRATARIO", "ambito": "Nacional", "abrang": "Todo o Território Nacional", "cnaes": "2341900"},
-    {"sigla": "SIMARJ", "nome": "Sindicato dos Mineradores de Areia do Estado do Rio de Janeiro - SIMARJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "0600003, 0810006"},
-    {"sigla": "SINDISAL", "nome": "Sindicato da Indústria de Refinação e Moagem de Sal do Estado do Rio de Janeiro - SINDISAL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "0892403"},
-    {"sigla": "SIPERJ", "nome": "Sindicato da Indústria do Pescado do Estado do Rio de Janeiro - SIPERJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1020101, 1020102"},
-    {"sigla": "SINDLAT", "nome": "Sindicato da Indústria de Laticínios e Produtos Derivados do Estado do Rio de Janeiro - SINDLAT", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1051100, 1052000, 1053800"},
-    {"sigla": "SINDITRIGO", "nome": "Sindicato das Indústrias de Trigo nos Estados do Rio de Janeiro e Espírito Santo - SINDITRIGO", "ambito": "Estadual RJ/ES", "abrang": "Estados do RJ e ES", "cnaes": "1062700"},
-    {"sigla": "SISERJ", "nome": "Sindicato da Indústria Sucroenergética do Estado do Rio de Janeiro - SISERJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1071600, 1072401, 1072402, 1931400"},
-    {"sigla": "SINCAFÉ", "nome": "Sind das Indústrias de Torrefação e Moagem de Café do Est do Rio de Janeiro - SINCAFÉ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1081301, 1081302, 1082100"},
-    {"sigla": "SINDIFUMO", "nome": "Sindicato da Indústria do Fumo do Município do Rio de Janeiro - SINDIFUMO", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Divisão 12 (1210700, 1220401-1220499)"},
-    {"sigla": "SINDITÊXTIL", "nome": "Sindicato das Indústrias de Fiação e Tecelagem do Estado do Rio de Janeiro - SINDITÊXTIL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Divisão 13, 1421500, 1422300, 9601702 (exceto Capital)"},
-    {"sigla": "SINFAR", "nome": "Sindicato da Indústria de Produtos Farmacêuticos do Estado do Rio de Janeiro - SINFAR", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2110600, 2121101-2121103, 3250705"},
-    {"sigla": "SIPATERJ", "nome": "Sindicato da Indústria de Produtos Cosméticos e Higiene Pessoal no Estado do Rio Janeiro - SIPATERJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2063100"},
-    {"sigla": "SIMPERJ", "nome": "Sindicato da Indústria de Material Plástico do Estado do Rio de Janeiro - SIMPERJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Divisão 222 (2221800-2229399), 3832700"},
-    {"sigla": "SINDBORJ", "nome": "Sindicato das Indústrias de Artefatos de Borracha do Estado do Rio de Janeiro - SINDBORJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2211100, 2212900, 2219600"},
-    {"sigla": "SINDITEC", "nome": "Sind da Ind Eletrônica, Informática, Telecomunicações, Componentes e Similares no Estado do RJ - SINDITEC", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1830001-1830003, Grupos 261, 262, 263, 264, 2651, 2660, Divisões 61 e 62, 3299004"},
-    {"sigla": "SICAV", "nome": "Sindicato Interestadual da Indústria Audiovisual - SICAV", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "5911101, 5911102, 5911199, 5912001, 5912002, 5912099, 5920100, 6022501"},
-    {"sigla": "SINERGIA", "nome": "Sindicato Interestadual das Indústrias de Energia Elétrica - SINERGIA", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "3511501, 3511502, 3512300, 3513100, 3514000"},
-    {"sigla": "SINDISTAL", "nome": "Sindicato da Indústria de Instalações Elétricas, Gás, Hidráulicas e Sanitárias do Estado do Rio de Janeiro - SINDISTAL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "4221903, 4321500, 4322301, 4322303, 4329101-4329199"},
-    {"sigla": "SINDIREPA", "nome": "Sindicato da Indústria de Reparação de Veículos e Acessórios do Estado do Rio de Janeiro - SINDIREPA", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2950600, 4520001, 4520002, 4520003, 4520004, 4520006, 4520007, 4520008, 4530703, 4530704, 4543900"},
-    {"sigla": "SINDJOIAS", "nome": "Sindicato das Indústrias da Joalheria e Lapidação de Pedras Preciosas do Estado do Rio de Janeiro - SINDJOIAS", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2652300, 3211601, 3211602, 3211603, 3212400"},
-    {"sigla": "SINDIVIDROS", "nome": "Sindicato da Indústria de Vidros, Cristais e Espelhos do Estado do Rio de Janeiro - SINDIVIDROS", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2311700, 2312500, 2319200, 2399101"},
-    {"sigla": "SINDRATAR", "nome": "Sindicato das Indústrias de Refrigeração, Aquecimento e Tratamento de Ar do Estado do Rio de Janeiro - SINDRATAR", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2823200, 2824101, 2824102, 3314706, 3314707, 4322302"},
-    {"sigla": "SINDICAPEL", "nome": "Sindicato da Indústria do Papel, Celulose e Pasta de Madeira para Papel no Estado do Rio de Janeiro - SINDICAPEL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "1710900, 1721400, 1722200"},
-    {"sigla": "SINPAPEL", "nome": "Sindicato da Indústria de Artefatos de Papel, Papelão e Cortiça do Estado do Rio de Janeiro - SINPAPEL", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Grupo 173 (1731100-1733800), 1741901, 1741902, 1742701, 1742702, 1742799, 1749400"},
-    {"sigla": "RODOFERRO", "nome": "Sind das Inds de Materiais e Equipamentos Rodoviários e Ferroviários do Est do Rio de Janeiro - RODOFERRO", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2930101-2930103, Divisão 303, 3091101, 3091102, 3315500"},
-    {"sigla": "SIMAGRAN", "nome": "Sind da Ind de Mármores, Granitos e Rochas Afins do Estado do Rio de Janeiro - SIMAGRAN", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro (exceto Baixada e Costa Verde)", "cnaes": "2391503, 2399102, 4679602"},
-    {"sigla": "INDUSCIMENTO", "nome": "Sind Inds de Artefatos de Cimento Armado, Ladrilhos Hidrául e Prod de Cimento do Est do RJ - INDUSCIMENTO", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "2330301-2330399"},
-    {"sigla": "SIQUIRJ", "nome": "Sindicato da Indústria de Produtos Químicos para Fins Industriais do Estado do RJ - SIQUIRJ", "ambito": "Estadual RJ", "abrang": "Estado do Rio de Janeiro", "cnaes": "Divisões 19 e 20 (exceto específicos), 3299002, 3839401, 3839499"},
-    {"sigla": "SIGRARJ", "nome": "Sindicato das Indústrias Gráficas do Estado do Rio de Janeiro - SIGRARJ", "ambito": "Estadual RJ", "abrang": "Municípios do RJ sem sindicato gráfico municipal", "cnaes": "Divisão 181, 182, 581, 582"},
-    {"sigla": "RJ METAL", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico no Estado do Rio de Janeiro - RJ METAL", "ambito": "Estadual RJ", "abrang": "Municípios do RJ sem representação metalmecânica específica", "cnaes": "Divisões 24, 25, 27, 28, 30, 33, 3831901"},
-    {"sigla": "SINDGNAISSES", "nome": "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES", "ambito": "Regional", "abrang": "Região Noroeste Fluminense", "cnaes": "0810099"},
-    {"sigla": "SINDIBRITA", "nome": "Sind da Indústria de Mineração de Brita no Estado do Rio de Janeiro - SINDIBRITA", "ambito": "Estadual RJ", "abrang": "Municípios do RJ (exceto Noroeste)", "cnaes": "0810099"},
-    {"sigla": "SICCC", "nome": "Sindicato da Indústria de Cerâmica para Construção de Campos - SICCC", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "2342701, 2342702, 2349401, 2349499"},
-    {"sigla": "SINDICER MVP", "nome": "Sindicato da Indústria de Cerâmica para Construção e Olaria do Médio Vale do Paraíba - SINDICER MVP", "ambito": "Regional", "abrang": "Sul Fluminense e Médio Paraíba", "cnaes": "2342701, 2342702, 2349401, 2349499"},
-    {"sigla": "SINDICER RJ", "nome": "Sindicato da Indústria de Cerâmica para Construção e de Olaria do Estado do Rio de Janeiro - SINDICER RJ", "ambito": "Estadual RJ", "abrang": "Demais regiões do Estado do RJ", "cnaes": "2342701, 2342702, 2349401, 2349499"},
-    {"sigla": "SIM-RIO", "nome": "Sind Ind Móv Mad Junco Vime Serrar Carpint Tanoaria Mad Compens e Lamin Aglom Chapa do Mun RJ - SIM-RIO", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisão 16, 3101200, 3103900, 3104700, 3291400, 3329501"},
-    {"sigla": "SINDMARCENARIA", "nome": "Sindicato da Indústria de Marcenaria, Móveis de Madeira, Serrarias, Carpintarias e Tanoarias de Petrópolis - SINDMARCENARIA", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "Divisão 16, 3101200, 3103900, 3104700, 3291400, 3329501"},
-    {"sigla": "SINDIMOB", "nome": "Sindicato da Indústria do Mobiliário de Campos dos Goytacazes - SINDIMOB", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "Divisão 16, 3101200, 3103900, 3104700, 3291400, 3329501"},
-    {"sigla": "SINDUSCON RIO", "nome": "Sindicato da Indústria da Construção Civil no Estado do Rio de Janeiro - SINDUSCON RIO", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINDUSCON PETROPOLIS", "nome": "Sindicato da Indústria da Construção Civil de Petrópolis - SINDUSCON PETROPOLIS", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINDICON", "nome": "Sindicato das Indústrias da Construção Civil e Engenharia Consultiva de Niterói - SINDICON", "ambito": "Municipal", "abrang": "Niterói", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINCOCIMO", "nome": "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", "ambito": "Regional", "abrang": "Duque de Caxias, Baixada Fluminense e Costa Verde (Mármores)", "cnaes": "Divisões 41, 43, 16, 31, 0810003, 2391503"},
-    {"sigla": "SINDICEM", "nome": "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", "ambito": "Regional", "abrang": "São Gonçalo, Cabo Frio e Leste/Lagos", "cnaes": "Divisões 41, 43, 16, 31 (Leste Fluminense/Lagos)"},
-    {"sigla": "SINDUSCON CN", "nome": "Sindicato da Indústria da Construção Civil do Centro Norte Fluminense - SINDUSCON CN", "ambito": "Regional", "abrang": "Nova Friburgo e Região Serrana", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINDUSCON NORTE", "nome": "Sindicato da Indústria da Construção Civil do Norte Fluminense - SINDUSCON NORTE", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINDUSCON NOROESTE", "nome": "Sind das Inds da Constr Civil, Montagens Industriais e Engª Consultiva no Noroeste do Est do RJ - SINDUSCON NOROESTE", "ambito": "Regional", "abrang": "Itaperuna e Noroeste Fluminense", "cnaes": "Divisão 41, 4292, 4299, 433, 439, 711, 9102302"},
-    {"sigla": "SINDICOM TR", "nome": "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", "ambito": "Regional", "abrang": "Três Rios e Centro-Sul Fluminense", "cnaes": "Divisões 41, 43, 16, 31 (Centro-Sul)"},
-    {"sigla": "SINDUSCON SUL", "nome": "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", "ambito": "Regional", "abrang": "Volta Redonda e Sul Fluminense", "cnaes": "Divisões 41, 43, 16, 31 (Sul Fluminense)"},
-    {"sigla": "SINMETAL", "nome": "Sindicato das Indústrias Metalúrgicas do Município do Rio de Janeiro - SINMETAL", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisões 24 e 25 (exceto Nacional)"},
-    {"sigla": "SIMME", "nome": "Sindicato das Indústrias Mecânicas e de Material Elétrico do Município do Rio de Janeiro - SIMME", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisões 27, 28, 30, 3102100, 33, 3831901"},
-    {"sigla": "SIMMEC", "nome": "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis - SIMMEC", "ambito": "Regional", "abrang": "Duque de Caxias, São João de Meriti e Nilópolis", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "METALSUL", "nome": "Sind. Inds. Metal, Mec, Automot, de Info e de Mat. Eletro-Eletrônico Médio Paraíba e Sul Fluminense - METALSUL", "ambito": "Regional", "abrang": "Volta Redonda, Resende, Barra Mansa e Sul Fluminense", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "SINDMETAL", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Nova Friburgo - SINDMETAL", "ambito": "Municipal", "abrang": "Nova Friburgo e Região Serrana", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "SINDMMEP", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Petrópolis - SINDMMEP", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "SINDMEC", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Campos - SINDMEC", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "SINDMETAL NOROESTE", "nome": "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Mat Elétrico no Noroeste do Est do Rio de Janeiro - SINDMETAL NOROESTE", "ambito": "Regional", "abrang": "Itaperuna e Noroeste Fluminense", "cnaes": "Divisões 24, 25, 27, 28, 30, 33"},
-    {"sigla": "RIO+PÃO", "nome": "Sindicato da Indústria de Panificação e Confeitaria do Município do Rio de Janeiro - RIO+PÃO", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "1091100, 1091101, 1091102, 4721102"},
-    {"sigla": "SINDPÃES", "nome": "Sindicato das Indústrias de Panificação e Confeitaria de Petrópolis - SINDPÃES", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "1091100, 1091101, 1091102, 4721102"},
-    {"sigla": "SINDPANIFIC", "nome": "Sindicato das Indústrias de Panificação e Confeitaria de Niterói e São Gonçalo - SINDPANIFIC", "ambito": "Regional", "abrang": "Niterói, São Gonçalo, Itaboraí, Teresópolis", "cnaes": "1091100, 1091101, 1091102, 4721102"},
-    {"sigla": "SIPACON", "nome": "Sindicato das Indústrias de Panificação e Confeitaria da Região Sul do Estado do Rio de Janeiro - SIPACON", "ambito": "Regional", "abrang": "Volta Redonda e Sul Fluminense", "cnaes": "1091100, 1091101, 1091102, 4721102"},
-    {"sigla": "SIARJ", "nome": "Sindicato das Indústrias de Alimentos do Município do Rio de Janeiro - SIARJ", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisão 10 (exceto panificação), 11"},
-    {"sigla": "SINDCER", "nome": "Sind das Inds de Cerv e Beb em Geral, Prod Cacau, Balas, Doces, Conserv Aliment e Biscot de Petrópolis - SINDCER", "ambito": "Municipal", "abrang": "Petrópolis e Teresópolis", "cnaes": "Divisões 10 e 11"},
-    {"sigla": "SINDBEBI", "nome": "Sindicato Intermunicipal da Indústria de Bebidas em Geral do Rio de Janeiro - SINDBEBI", "ambito": "Regional", "abrang": "Rio de Janeiro e Municípios Conveniados", "cnaes": "Divisão 11 (Bebidas em geral)"},
-    {"sigla": "SIMAPAN", "nome": "Sind. Inds. de Massas Alimentícias, Panificação e Afins da Baixada Fluminense - SIMAPAN", "ambito": "Regional", "abrang": "Duque de Caxias e Baixada Fluminense", "cnaes": "Divisão 10, Panificação e Massas"},
-    {"sigla": "SIAN", "nome": "Sindicato das Indústrias de Alimentação de Niterói - SIAN", "ambito": "Regional", "abrang": "Niterói, São Gonçalo e Região dos Lagos", "cnaes": "Divisão 10 (exceto panificação direta), 11"},
-    {"sigla": "SINDANF", "nome": "Sindicato das Indústrias de Alimentação de Nova Friburgo - SINDANF", "ambito": "Regional", "abrang": "Nova Friburgo e Região Serrana", "cnaes": "Divisões 10 e 11"},
-    {"sigla": "SIPAL", "nome": "Sind Ind Panif Conf Prod Cacau Balas Massas Alim Bisc Cerv Beb Geral Doces e Conservas de Campos - SIPAL", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "Divisões 10 e 11"},
-    {"sigla": "SIANERJ", "nome": "Sindicato das Indústrias de Alimentação no Noroeste do Estado do Rio de Janeiro - SIANERJ", "ambito": "Regional", "abrang": "Itaperuna e Noroeste Fluminense", "cnaes": "Divisões 10 e 11"},
-    {"sigla": "SINDAL", "nome": "Sind Ind de Alimentação Três Rios, Paraib. do Sul, Sapucaia, Areal, Com.Levy Gaspa e S J V do R.Preto - SINDAL", "ambito": "Regional", "abrang": "Três Rios e Centro-Sul", "cnaes": "Divisões 10 e 11"},
-    {"sigla": "SINDICALÇADOS", "nome": "Sindicato das Indústrias de Calçados e de Bolsas, Luvas e Similares do Município do Rio de Janeiro - SINDICALÇADOS", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisão 15"},
-    {"sigla": "SINDCON", "nome": "Sind da Indústria de Confecção de Roupas e Chapéus de Senhoras de Petrópolis - SINDCON", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "Divisão 14"},
-    {"sigla": "SINDICONF", "nome": "Sindicato da Indústria de Alfaiataria e de Confecção de Roupas de Homem de Niterói - SINDICONF", "ambito": "Municipal", "abrang": "Niterói", "cnaes": "Divisão 14"},
-    {"sigla": "SINDVEST", "nome": "Sindicato das Indústrias do Vestuário de Nova Friburgo - SINDVEST", "ambito": "Municipal", "abrang": "Nova Friburgo", "cnaes": "Divisão 14"},
-    {"sigla": "SINDVEST NORTE", "nome": "Sindicato da Indústria do Vestuário do Norte Fluminense - SINDVEST NORTE", "ambito": "Regional", "abrang": "Campos dos Goytacazes e Norte Fluminense", "cnaes": "Divisão 14"},
-    {"sigla": "SINCRONERJ", "nome": "Sindicato das Indústrias de Confecções de Roupas no Noroeste do Estado do Rio de Janeiro - SINCRONERJ", "ambito": "Regional", "abrang": "Itaperuna e Noroeste Fluminense", "cnaes": "Divisão 14"},
-    {"sigla": "MODA RIO", "nome": "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", "ambito": "Regional", "abrang": "Rio de Janeiro e Grande Rio", "cnaes": "Divisão 14, 3292202, 3299005"},
-    {"sigla": "SINTINTURARIAS", "nome": "Sindicato da Indústria da Tinturaria do Vestuário no Município do Rio de Janeiro - SINTINTURARIAS", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "1340501, 1340502, 1340599, 9601701, 9601702"},
-    {"sigla": "SIGRAF", "nome": "Sindicato das Indústrias Gráficas do Município do Rio de Janeiro - SIGRAF", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SIGRAP", "nome": "Sindicato das Indústrias Gráficas de Petrópolis - SIGRAP", "ambito": "Municipal", "abrang": "Petrópolis", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SINDGRAF", "nome": "Sindicato das Indústrias Gráficas de Nova Friburgo - SINDGRAF", "ambito": "Municipal", "abrang": "Nova Friburgo", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SINDGRAF CAMPOS", "nome": "Sindicato das Indústrias Gráficas de Campos - SINDGRAF CAMPOS", "ambito": "Regional", "abrang": "Campos e Norte Fluminense", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SINDGRAF NOROESTE", "nome": "Sindicato das Indústrias Gráficas no Noroeste do Estado do Rio de Janeiro - SINDGRAF NOROESTE", "ambito": "Regional", "abrang": "Itaperuna e Noroeste Fluminense", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SINGRASUL", "nome": "Sindicato das Indústrias Gráficas do Sul Fluminense - SINGRASUL", "ambito": "Regional", "abrang": "Volta Redonda e Sul Fluminense", "cnaes": "Divisões 181, 182, 581, 582"},
-    {"sigla": "SINTIRJ", "nome": "Sind das Inds de Tintas e Vernizes e de Preparação de Óleos Vegetais e Animais do Mun do RJ - SINTIRJ", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "2071100, 2072000, 2091600, 3299002"},
-    {"sigla": "SISAVERJ", "nome": "Sindicato da Indústria de Sabão e Velas do Município RJ - SISAVERJ", "ambito": "Municipal", "abrang": "Rio de Janeiro (Capital)", "cnaes": "2061400, 3299006"}
-  ];
-
-  const SINDICATOS_NACIONAIS = [
-    { prefix: [/^2550101/, /^2550102/, /^2092401/, /^3050400/, /^3292201/], nome: "Sindicato Nacional das Indústrias de Materiais de Defesa - SIMDE", regra: "Abrangência Nacional" },
-    { prefix: [/^05/], nome: "Sindicato Nacional da Indústria da Extração de Carvão - SNIEC", regra: "Abrangência Nacional" },
-    { prefix: [/^0710/, /^0721/, /^0723/, /^0729/, /^0990401/, /^0990402/], nome: "Sindicato Nacional da Indústria da Extração do Ferro e Metais Básicos - SINFERBASE", regra: "Abrangência Nacional" },
-    { prefix: [/^0722/], nome: "Sindicato Nacional da Indústria da Extração do Estanho - SNIEE", regra: "Abrangência Nacional" },
-    { prefix: [/^1066/], nome: "Sindicato Nacional da Indústria de Alimentação Animal - SINDIRAÇÕES", regra: "Abrangência Nacional" },
-    { prefix: [/^1113502/], nome: "Sindicato Nacional da Industria da Cerveja - SINDICERV", regra: "Abrangência Nacional" },
-    { prefix: [/^1099604/, /^1121600/], nome: "Sindicato Nacional da Indústria de Águas Minerais - SINDINAM", regra: "Abrangência Nacional" },
-    { prefix: [/^2092403/], nome: "Sindicato Nacional da Indústria de Fósforos - SNIFOS", regra: "Abrangência Nacional" },
-    { prefix: [/^2122000/], nome: "Sindicato Nacional da Indústria de Produtos para a Saúde Animal - SINDAN", regra: "Abrangência Nacional" },
-    { prefix: [/^2831300/, /^2853400/, /^2910701/, /^2920401/, /^3050400/], nome: "Sindicato Nacional da Indústria de Tratores, Caminhões, Automóveis e Veículos Similares - SINFAVEA", regra: "Abrangência Nacional" },
-    { prefix: [/^2910702/, /^2910703/, /^2920402/, /^294/], nome: "Sindicato Nacional da Indústria de Componentes para Veículos Automotores - SINDIPEÇAS", regra: "Abrangência Nacional" },
-    { prefix: [/^2320600/], nome: "Sind. Nacional da Ind. do Cimento - SNIC", regra: "Abrangência Nacional" },
-    { prefix: [/^2341900/], nome: "Sindicato Nacional da Indústria de Refratários - SIR - SINDREFRATARIO", regra: "Abrangência Nacional" },
-    { prefix: [/^4291000/], nome: "Sind. Nacional da Ind. da Construção Pesada - SINICON", regra: "Abrangência Nacional (Obras Portuárias e Marítimas)" },
-    { prefix: [/^3011/, /^3012/, /^33171/], nome: "Sind. Nacional da Ind. da Construção Naval - SINAVAL", regra: "Abrangência Nacional" },
-    { prefix: [/^242/, /^243/, /^2451/, /^2531401/], nome: "Sindicato Nacional da Indústria de Aço - SIND.AÇO", regra: "Abrangência Nacional" },
-    { prefix: [/^2011800/], nome: "Sindicato Nacional da Indústria de Álcalis - SINALCALIS", regra: "Abrangência Nacional" }
-  ];
-
-  const SINDICATOS_ESTADUAIS_RJ = [
-    { prefix: [/^0600003/, /^0810006/], nome: "Sindicato dos Mineradores de Areia do Estado do Rio de Janeiro - SIMARJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^0892403/], nome: "Sindicato da Indústria de Refinação e Moagem de Sal do Estado do Rio de Janeiro - SINDISAL", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^10201/], nome: "Sindicato da Indústria do Pescado do Estado do Rio de Janeiro - SIPERJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^1051/, /^1052/, /^1053/], nome: "Sindicato da Indústria de Laticínios e Produtos Derivados do Estado do Rio de Janeiro - SINDLAT", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^10627/], nome: "Sindicato das Indústrias de Trigo nos Estados do Rio de Janeiro e Espírito Santo - SINDITRIGO", regra: "Abrangência Estadual (RJ/ES)" },
-    { prefix: [/^10716/, /^10724/, /^19314/], nome: "Sindicato da Indústria Sucroenergética do Estado do Rio de Janeiro - SISERJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^10813/, /^10821/], nome: "Sind das Indústrias de Torrefação e Moagem de Café do Est do Rio de Janeiro - SINCAFÉ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^12107/, /^12204/], nome: "Sindicato da Indústria do Fumo do Município do Rio de Janeiro - SINDIFUMO", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^131/, /^132/, /^133/, /^134/, /^135/, /^1421/, /^1422/], nome: "Sindicato das Indústrias de Fiação e Tecelagem do Estado do Rio de Janeiro - SINDITÊXTIL", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^21106/, /^21211/, /^3250705/], nome: "Sindicato da Indústria de Produtos Farmacêuticos do Estado do Rio de Janeiro - SINFAR", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^20631/], nome: "Sindicato da Indústria de Produtos Cosméticos e Higiene Pessoal no Estado do Rio Janeiro - SIPATERJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^222/, /^38327/], nome: "Sindicato da Indústria de Material Plástico do Estado do Rio de Janeiro - SIMPERJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^2211/, /^2212/, /^2219/], nome: "Sindicato das Indústrias de Artefatos de Borracha do Estado do Rio de Janeiro - SINDBORJ", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^18300/, /^261/, /^262/, /^263/, /^264/, /^2651/, /^2660/, /^611/, /^612/, /^613/, /^619/, /^62015/, /^62023/, /^62031/, /^3299004/], nome: "Sind da Ind Eletrônica, Informática, Telecomunicações, Componentes e Similares no Estado do RJ - SINDITEC", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^59111/, /^59120/, /^59201/, /^6022501/], nome: "Sindicato Interestadual da Indústria Audiovisual - SICAV", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^3511501/, /^3511502/, /^35123/, /^35131/, /^35140/], nome: "Sindicato Interestadual das Indústrias de Energia Elétrica - SINERGIA", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^4221903/, /^43215/, /^4322301/, /^4322303/, /^43291/], nome: "Sindicato da Indústria de Instalações Elétricas, Gás, Hidráulicas e Sanitárias do Estado do Rio de Janeiro - SINDISTAL", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^2950600/, /^4520001/, /^4520002/, /^4520003/, /^4520004/, /^4520006/, /^4520007/, /^4520008/, /^4530703/, /^4530704/, /^4543900/], nome: "Sindicato da Indústria de Reparação de Veículos e Acessórios do Estado do Rio de Janeiro - SINDIREPA", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^26523/, /^32116/, /^32124/], nome: "Sindicato das Indústrias da Joalheria e Lapidação de Pedras Preciosas do Estado do Rio de Janeiro - SINDJOIAS", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^23117/, /^23125/, /^23192/, /^2399101/], nome: "Sindicato da Indústria de Vidros, Cristais e Espelhos do Estado do Rio de Janeiro - SINDIVIDROS", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^28232/, /^28241/, /^3314706/, /^3314707/, /^4322302/], nome: "Sindicato das Indústrias de Refrigeração, Aquecimento e Tratamento de Ar do Estado do Rio de Janeiro - SINDRATAR", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^17109/, /^17214/, /^17222/], nome: "Sindicato da Indústria do Papel, Celulose e Pasta de Madeira para Papel no Estado do Rio de Janeiro - SINDICAPEL", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^173/, /^174/], nome: "Sindicato da Indústria de Artefatos de Papel, Papelão e Cortiça do Estado do Rio de Janeiro - SINPAPEL", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^29301/, /^303/, /^3091101/, /^3091102/, /^33155/], nome: "Sind das Inds de Materiais e Equipamentos Rodoviários e Ferroviários do Est do Rio de Janeiro - RODOFERRO", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^2391503/, /^2399102/, /^4679602/], nome: "Sind da Ind de Mármores, Granitos e Rochas Afins do Estado do Rio de Janeiro - SIMAGRAN", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^23303/], nome: "Sind Inds de Artefatos de Cimento Armado, Ladrilhos Hidrául e Prod de Cimento do Est do RJ - INDUSCIMENTO", regra: "Abrangência Estadual (RJ)" },
-    { prefix: [/^191/, /^192/, /^1932/, /^2012/, /^2013/, /^2014/, /^2019/, /^202/, /^203/, /^204/, /^205/, /^2062/, /^2073/, /^2091/, /^20924/, /^2093/, /^2094/, /^2099/, /^3299002/, /^3839401/, /^3839499/], nome: "Sindicato da Indústria de Produtos Químicos para Fins Industriais do Estado do RJ - SIQUIRJ", regra: "Abrangência Estadual (RJ)" }
-  ];
-
-  function buscarSindicatosParaCnae(cnaeRaw, municipio, uf) {
-    const cnae = cleanNumber(cnaeRaw);
-    const munNorm = cleanText(municipio);
-    const ufNorm = cleanText(uf);
-
-    if (!cnae || cnae.length < 5) return [];
-
-    const cnaeInfo = baseCNAEs[cnae];
-    if (cnaeInfo && cnaeInfo.assoc !== "Sindicato") {
-      return [];
-    }
-
-    const matches = [];
-
-    for (const s of SINDICATOS_NACIONAIS) {
-      if (s.prefix.some(p => p.test(cnae))) {
-        matches.push({ sindicato: s.nome, regra: s.regra, situacao: "Enquadrado" });
-      }
-    }
-
-    if (ufNorm !== "RJ") {
-      return matches;
-    }
-
-    for (const s of SINDICATOS_ESTADUAIS_RJ) {
-      if (s.prefix.some(p => p.test(cnae))) {
-        if ((cnae === "0810003" || cnae === "2391503") && (REGIOES_RJ.BAIXADA.includes(munNorm) || ["ANGRADOSREIS", "PARATY", "MANGARATIBA"].includes(munNorm))) {
-          continue;
-        }
-        if (!matches.some(m => m.sindicato === s.nome)) {
-          matches.push({ sindicato: s.nome, regra: s.regra, situacao: "Enquadrado" });
-        }
-      }
-    }
-
-    if ((cnae === "0810003" || cnae === "2391503") && (REGIOES_RJ.BAIXADA.includes(munNorm) || ["ANGRADOSREIS", "PARATY", "MANGARATIBA"].includes(munNorm))) {
-      matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Mármores na Baixada/Costa Verde)`, situacao: "Enquadrado" });
-    }
-
-    if (cnae.startsWith("0810099")) {
-      if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sind das Ind e Extratores de Pedras Gnaisses no Noroeste do Estado do Rio de Janeiro - SINDGNAISSES", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sind da Indústria de Mineração de Brita no Estado do Rio de Janeiro - SINDIBRITA", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    if (cnae.startsWith("23427") || cnae.startsWith("23494")) {
-      if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção de Campos - SICCC", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção e Olaria do Médio Vale do Paraíba - SINDICER MVP", regra: `Abrangência Regional (${municipio} - Médio Paraíba)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sindicato da Indústria de Cerâmica para Construção e de Olaria do Estado do Rio de Janeiro - SINDICER RJ", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    if (cnae.startsWith("10") || cnae.startsWith("11") || cnae.startsWith("4721102") || cnae.startsWith("5620101")) {
-      if (cnae.startsWith("10911") || cnae.startsWith("4721102")) {
-        if (munNorm === "RIODEJANEIRO") {
-          matches.push({ sindicato: "Sindicato da Indústria de Panificação e Confeitaria do Município do Rio de Janeiro - RIO+PÃO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else if (munNorm === "PETROPOLIS") {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria de Petrópolis - SINDPÃES", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else if (["NITEROI", "SAOGONCALO", "ITABORAI", "TERESOPOLIS"].includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria de Niterói e São Gonçalo - SINDPANIFIC", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria da Região Sul do Estado do Rio de Janeiro - SIPACON", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-          matches.push({ sindicato: "Sind. Inds. de Massas Alimentícias, Panificação e Afins da Baixada Fluminense - SIMAPAN", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind Panif Conf Prod Cacau Balas Massas Alim Bisc Cerv Beb Geral Doces e Conservas de Campos - SIPAL", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação no Noroeste do Estado do Rio de Janeiro - SIANERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind de Alimentação Três Rios, Paraib. do Sul, Sapucaia, Areal, Com.Levy Gaspa e S J V do R.Preto - SINDAL", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-        }
-      } else {
-        if (munNorm === "RIODEJANEIRO") {
-          if (cnae.startsWith("11")) {
-            matches.push({ sindicato: "Sindicato Intermunicipal da Indústria de Bebidas em Geral do Rio de Janeiro - SINDBEBI", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-          } else {
-            matches.push({ sindicato: "Sindicato das Indústrias de Alimentos do Município do Rio de Janeiro - SIARJ", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-          }
-        } else if (munNorm === "PETROPOLIS" || munNorm === "TERESOPOLIS") {
-          matches.push({ sindicato: "Sind das Inds de Cerv e Beb em Geral, Prod Cacau, Balas, Doces, Conserv Aliment e Biscot de Petrópolis - SINDCER", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-          matches.push({ sindicato: "Sind. Inds. de Massas Alimentícias, Panificação e Afins da Baixada Fluminense - SIMAPAN", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação de Niterói - SIAN", regra: `Abrangência Regional (${municipio} - Leste/Lagos)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SERRANA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação de Nova Friburgo - SINDANF", regra: `Abrangência Regional (${municipio} - Região Serrana)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind Panif Conf Prod Cacau Balas Massas Alim Bisc Cerv Beb Geral Doces e Conservas de Campos - SIPAL", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Alimentação no Noroeste do Estado do Rio de Janeiro - SIANERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-          matches.push({ sindicato: "Sind Ind de Alimentação Três Rios, Paraib. do Sul, Sapucaia, Areal, Com.Levy Gaspa e S J V do R.Preto - SINDAL", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-        } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Panificação e Confeitaria da Região Sul do Estado do Rio de Janeiro - SIPACON", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-        }
-      }
-    }
-
-    if ((cnae.startsWith("41") || cnae.startsWith("4292") || cnae.startsWith("4299") || cnae.startsWith("433") || cnae.startsWith("439") || cnae.startsWith("711") || cnae.startsWith("9102")) && cnae !== "4291000") {
-      if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil no Estado do Rio de Janeiro - SINDUSCON RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil de Petrópolis - SINDUSCON PETROPOLIS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "NITEROI") {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e Engenharia Consultiva de Niterói - SINDICON", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: `Abrangência Regional (${municipio} - Leste Fluminense/Lagos)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SERRANA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Centro Norte Fluminense - SINDUSCON CN", regra: `Abrangência Regional (${municipio} - Centro-Norte/Serrana)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria da Construção Civil do Norte Fluminense - SINDUSCON NORTE", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sind das Inds da Constr Civil, Montagens Industriais e Engª Consultiva no Noroeste do Est do RJ - SINDUSCON NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-      }
-    }
-
-    const jaEnquadradoNacionalMetal = matches.some(m => ["Sindicato Nacional das Indústrias de Materiais de Defesa - SIMDE", "Sindicato Nacional da Indústria de Aço - SIND.AÇO", "Sind. Nacional da Ind. da Construção Naval - SINAVAL"].includes(m.sindicato));
-    if (!jaEnquadradoNacionalMetal && (cnae.startsWith("24") || cnae.startsWith("25") || cnae.startsWith("27") || cnae.startsWith("28") || cnae.startsWith("3102") || cnae.startsWith("33") || cnae.startsWith("3831"))) {
-      if (munNorm === "RIODEJANEIRO") {
-        if (cnae.startsWith("24") || cnae.startsWith("25")) {
-          matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas do Município do Rio de Janeiro - SINMETAL", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        }
-        if (cnae.startsWith("27") || cnae.startsWith("28") || cnae.startsWith("30") || cnae.startsWith("3102") || cnae.startsWith("33") || cnae.startsWith("3831")) {
-          matches.push({ sindicato: "Sindicato das Indústrias Mecânicas e de Material Elétrico do Município do Rio de Janeiro - SIMME", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        }
-      } else if (["DUQUEDECAXIAS", "SAOJOAODEMERITI", "NILOPOLIS"].includes(munNorm)) {
-        matches.push({ sindicato: "Sind Ind Metalúrgicas, Mecânicas e de Mat Elétrico dos Mun de D de Caxias, S J de Meriti e Nilópolis - SIMMEC", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sind. Inds. Metal, Mec, Automot, de Info e de Mat. Eletro-Eletrônico Médio Paraíba e Sul Fluminense - METALSUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-      } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Nova Friburgo - SINDMETAL", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Petrópolis - SINDMMEP", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico de Campos - SINDMEC", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Mat Elétrico no Noroeste do Est do Rio de Janeiro - SINDMETAL NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sindicato das Indústrias Metalúrgicas, Mecânicas e de Material Elétrico no Estado do Rio de Janeiro - RJ METAL", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    if (cnae.startsWith("16") || cnae.startsWith("3101") || cnae.startsWith("3103") || cnae.startsWith("3104") || cnae.startsWith("32914") || cnae.startsWith("33295")) {
-      if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sind Ind Móv Mad Junco Vime Serrar Carpint Tanoaria Mad Compens e Lamin Aglom Chapa do Mun RJ - SIM-RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato da Indústria de Marcenaria, Móveis de Madeira, Serrarias, Carpintarias e Tanoarias de Petrópolis - SINDMARCENARIA", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria do Mobiliário de Campos dos Goytacazes - SINDIMOB", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.BAIXADA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e Mobiliário de Duque de Caxias - SINCOCIMO", regra: `Abrangência Regional (${municipio} - Baixada Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção, Engenharia Consultiva e do Mobiliário de Niterói a Cabo Frio - SINDICEM", regra: `Abrangência Regional (${municipio} - Leste Fluminense/Lagos)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.CENTRO_SUL.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção Civil e do Mobiliário de Três Rios, P.Sul, Areal, Com.Levy Gasparian e Sapucaia - SINDICOM TR", regra: `Abrangência Regional (${municipio} - Centro-Sul)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias da Construção e do Mobiliário de Volta Redonda - SINDUSCON SUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-      }
-    }
-
-    if (cnae.startsWith("14") || cnae.startsWith("15") || cnae.startsWith("13405") || cnae.startsWith("32922") || cnae.startsWith("3299005") || cnae.startsWith("96017")) {
-      if (cnae.startsWith("14") && REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({
-          sindicato: "Consultar Especialista",
-          regra: "Polo de Vestuário do Sul Fluminense - Encaminhar para associe-se@firjan.com.br o cartão do CNPJ e print da tela do simulador",
-          situacao: "Consultar Especialista"
-        });
-      } else if (munNorm === "RIODEJANEIRO") {
-        if (cnae.startsWith("15")) {
-          matches.push({ sindicato: "Sindicato das Indústrias de Calçados e de Bolsas, Luvas e Similares do Município do Rio de Janeiro - SINDICALÇADOS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else if (cnae.startsWith("13405") || cnae.startsWith("96017")) {
-          matches.push({ sindicato: "Sindicato da Indústria da Tinturaria do Vestuário no Município do Rio de Janeiro - SINTINTURARIAS", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        } else {
-          matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-        }
-      } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sind da Indústria de Confecção de Roupas e Chapéus de Senhoras de Petrópolis - SINDCON", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "NITEROI") {
-        matches.push({ sindicato: "Sindicato da Indústria de Alfaiataria e de Confecção de Roupas de Homem de Niterói - SINDICONF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias do Vestuário de Nova Friburgo - SINDVEST", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato da Indústria do Vestuário do Norte Fluminense - SINDVEST NORTE", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias de Confecções de Roupas no Noroeste do Estado do Rio de Janeiro - SINCRONERJ", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sindicato das Indústrias de Vestuário do Rio de Janeiro e Grande Rio - MODA RIO", regra: `Abrangência Regional (${municipio})`, situacao: "Enquadrado" });
-      }
-    }
-
-    if (cnae.startsWith("181") || cnae.startsWith("182") || cnae.startsWith("581") || cnae.startsWith("582")) {
-      if (munNorm === "RIODEJANEIRO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Município do Rio de Janeiro - SIGRAF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "PETROPOLIS") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Petrópolis - SIGRAP", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (munNorm === "NOVAFRIBURGO") {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Nova Friburgo - SINDGRAF", regra: `Abrangência Municipal (${municipio})`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NORTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas de Campos - SINDGRAF CAMPOS", regra: `Abrangência Regional (${municipio} - Norte Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.NOROESTE.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas no Noroeste do Estado do Rio de Janeiro - SINDGRAF NOROESTE", regra: `Abrangência Regional (${municipio} - Noroeste Fluminense)`, situacao: "Enquadrado" });
-      } else if (REGIOES_RJ.SUL_MEDIO_PARAIBA.includes(munNorm)) {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Sul Fluminense - SINGRASUL", regra: `Abrangência Regional (${municipio} - Sul Fluminense)`, situacao: "Enquadrado" });
-      } else {
-        matches.push({ sindicato: "Sindicato das Indústrias Gráficas do Estado do Rio de Janeiro - SIGRARJ", regra: "Abrangência Estadual (RJ)", situacao: "Enquadrado" });
-      }
-    }
-
-    return matches;
-  }
-
-  function enquadrarPrincipal(cnaeCode, cnaeDesc, municipio, uf) {
-    const cnae = cleanNumber(cnaeCode);
-    const ufNorm = cleanText(uf);
-    const cnaeInfo = baseCNAEs[cnae];
-
-    if (CNAES_FORA.has(cnae) || (cnaeInfo && cnaeInfo.assoc === "Fora do Perfil")) {
-      return {
-        sindicato: "Fora do Perfil Associativo",
-        regra: "Atividade comercial/serviço sem representação sindical industrial",
-        situacao: "Fora do Perfil",
-        confianca: "100% (Regra Oficial)",
-        badgeClass: "bg-secondary text-white"
-      };
-    }
-
-    const sindicatos = buscarSindicatosParaCnae(cnae, municipio, uf);
-
-    if (sindicatos.length > 0) {
-      const primeiro = sindicatos[0];
-      if (primeiro.situacao === "Consultar Especialista") {
-        return {
-          sindicato: "Consultar Especialista",
-          regra: primeiro.regra,
-          situacao: "Consultar Especialista",
-          confianca: "Regra Territorial Específica",
-          badgeClass: "bg-warning text-dark"
-        };
-      }
-      return {
-        sindicato: sindicatos.map(s => s.sindicato).join(" / "),
-        regra: primeiro.regra,
-        situacao: "Enquadrado",
-        confianca: "100% (Base Oficial FIRJAN)",
-        badgeClass: "bg-success text-white"
-      };
-    }
-
-    if (cnaeInfo && cnaeInfo.assoc === "Consultar Especialista") {
-      return {
-        sindicato: "Consultar Especialista",
-        regra: ufNorm === "RJ" 
-          ? "Atividade com perfil comercial/serviço ou mista - requer análise da operação real junto ao Especialista FIRJAN (associe-se@firjan.com.br)" 
-          : `Atividade localizada fora do Estado do RJ (${ufNorm}) sem abrangência nacional direta`,
-        situacao: "Consultar Especialista",
-        confianca: "Análise Individual",
-        badgeClass: "bg-warning text-dark"
-      };
-    }
-
-    return {
-      sindicato: "Consultar Especialista",
-      regra: ufNorm === "RJ" 
-        ? "Atividade industrial sem sindicato de abrangência específica no município - requer análise" 
-        : `Atividade localizada fora do Estado do RJ (${ufNorm}) sem abrangência nacional direta`,
-      situacao: "Consultar Especialista",
-      confianca: "Avaliação Territorial",
-      badgeClass: "bg-warning text-dark"
-    };
-  }
-
-  function analisarSecundarios(cnaesSecundarios, municipio, uf) {
-    if (!cnaesSecundarios || !Array.isArray(cnaesSecundarios) || cnaesSecundarios.length === 0) {
-      return [];
-    }
-
-    const resultados = [];
-
-    cnaesSecundarios.forEach(sec => {
-      const cnaeSecCode = String(sec.codigo || sec.code || '').padStart(7, '0');
-      const cnaeClean = cleanNumber(cnaeSecCode);
-      const cnaeInfo = baseCNAEs[cnaeClean];
-      const cnaeSecDesc = (cnaeInfo && cnaeInfo.desc) ? cnaeInfo.desc : (sec.descricao || sec.desc || 'Sem descrição informada');
-
-      if (CNAES_FORA.has(cnaeClean) || (cnaeInfo && cnaeInfo.assoc === "Fora do Perfil")) {
-        resultados.push({
-          cnae: cnaeSecCode,
-          desc: cnaeSecDesc,
-          sindicato: "Fora do Perfil Associativo",
-          regra: "Atividade comercial/serviço sem representação industrial",
-          situacao: "Fora do Perfil",
-          badgeClass: "bg-secondary text-white"
-        });
+  // Carrega e processa a planilha oficial via SheetJS
+  async function carregarPlanilhaOficial() {
+    try {
+      const resp = await fetch('./Simulador%20de%20Triagem.xlsx', { cache: 'no-cache' });
+      if (!resp.ok) {
+        document.getElementById('loadingMotorText').innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-xmark"></i> Erro: Simulador de Triagem.xlsx não encontrado no repositório. O sistema não pode funcionar sem as regras oficiais.</span>';
         return;
       }
 
-      const sindicatos = buscarSindicatosParaCnae(cnaeClean, municipio, uf);
+      const arrayBuffer = await resp.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-      if (sindicatos.length > 0) {
-        sindicatos.forEach(s => {
-          resultados.push({
-            cnae: cnaeSecCode,
-            desc: cnaeSecDesc,
-            sindicato: s.sindicato,
-            regra: s.regra,
-            situacao: s.situacao,
-            badgeClass: s.situacao === "Enquadrado" ? "bg-success text-white" : "bg-warning text-dark"
-          });
-        });
-      } else {
-        resultados.push({
-          cnae: cnaeSecCode,
-          desc: cnaeSecDesc,
-          sindicato: cnaeInfo.assoc === "Consultar Especialista" ? "Consultar Especialista" : "—",
-          regra: "Atividade de apoio ou comercial/serviço complementar",
-          situacao: cnaeInfo.assoc === "Consultar Especialista" ? "Consultar Especialista" : "Outros",
-          badgeClass: cnaeInfo.assoc === "Consultar Especialista" ? "bg-warning text-dark" : "bg-secondary text-white"
+      // 1. Processa Aba "De Para" (Catálogo de Sindicatos)
+      const wsDePara = workbook.Sheets['De Para'];
+      if (wsDePara) {
+        const linhasDePara = XLSX.utils.sheet_to_json(wsDePara, { defval: '' });
+        linhasDePara.forEach((row) => {
+          const nome = String(row['Sindicato '] || row['Sindicato'] || '').trim();
+          const sigla = String(row['Sigla'] || '').trim();
+          const chave = String(row['Chave'] || '').trim();
+          if (chave && nome) {
+            DE_PARA_SIGLAS.set(chave, { nome, sigla, chave });
+            CATALOGO_ARRAY.push({ sigla, nome, chave });
+          }
         });
       }
-    });
 
-    return resultados;
+      // 2. Processa Aba "Estrutura CNAE" (As 1.355 subclasses)
+      const wsEstrutura = workbook.Sheets['Estrutura CNAE'];
+      if (wsEstrutura) {
+        const matrizCnae = XLSX.utils.sheet_to_json(wsEstrutura, { header: 1, defval: '' });
+        // Header está na linha 1 (índice 1). Começamos da linha 2 (índice 2)
+        for (let i = 2; i < matrizCnae.length; i++) {
+          const row = matrizCnae[i];
+          const subclasseBruta = row[4]; // Ex: 0111-3/01
+          if (!subclasseBruta) continue; // Pula linhas de Seção, Divisão e Grupo
+
+          // O código da Receita tem 7 dígitos. 
+          // O Excel possui "Subclasse Ajustada" (col 5) e "Subclasse Ajustada 2" (col 6 - sem zero).
+          const codigoBruto = String(row[5] || row[6] || subclasseBruta).replace(/\D/g, '');
+          if (codigoBruto.length < 6 || /^0+$/.test(codigoBruto)) continue;
+          
+          const codigo7 = codigoBruto.padStart(7, '0');
+          const codigoSemZero = String(parseInt(codigo7, 10)); // Usado no lookup de abrangência
+
+          ESTRUTURA_CNAE.set(codigo7, {
+            codigo7: codigo7,
+            codigoSemZero: codigoSemZero,
+            descricao: String(row[7] || '').trim(), // Coluna H
+            tipoAssociacao: String(row[8] || '').trim(), // Coluna I (Consultar Especialista, Sindicato, Fora do Perfil)
+            tipoNegocio: String(row[9] || '').trim() // Coluna J (Indústria, Comércio e Serviço)
+          });
+        }
+      }
+
+      // 3. Processa Aba "Abrangência dos Sindicatos" (49.564 chaves de Município/UF/CNAE)
+      const wsAbrangencia = workbook.Sheets['Abrangência dos Sindicatos'];
+      if (wsAbrangencia) {
+        const matrizAbr = XLSX.utils.sheet_to_json(wsAbrangencia, { header: 1, defval: '' });
+        // Header no índice 0
+        for (let i = 1; i < matrizAbr.length; i++) {
+          const row = matrizAbr[i];
+          const cnaeSemZero = String(row[0] || '').trim(); // Coluna A
+          const munRaw = String(row[3] || ''); // Coluna D (Município)
+          const ufRaw = String(row[4] || ''); // Coluna E (UF)
+          const sindicato = String(row[6] || row[2] || '').trim(); // Coluna G (Chave.1)
+
+          if (!cnaeSemZero || !ufRaw || !sindicato) continue;
+
+          // Normaliza chave igual à lógica de Triagem
+          const ufNorm = cleanText(ufRaw).toLowerCase();
+          const munNorm = cleanText(munRaw).toLowerCase();
+
+          // Chave de lookup exato. Para RJ o município importa; para fora do RJ o município vem vazio.
+          const chaveLookup = `${cnaeSemZero}|${munNorm}\vert{}${ufNorm}`;
+          
+          if (!ABRANGENCIA.has(chaveLookup)) {
+            ABRANGENCIA.set(chaveLookup, sindicato);
+          } else {
+            // Se houver mais de um sindicato para a mesma chave
+            const atual = ABRANGENCIA.get(chaveLookup);
+            if (!atual.includes(sindicato)) {
+              ABRANGENCIA.set(chaveLookup, `${atual} /${sindicato}`);
+            }
+          }
+        }
+      }
+
+      motorOficialCarregado = true;
+      document.getElementById('loadingMotorOficial').style.display = 'none';
+      renderCatalogo();
+
+    } catch (error) {
+      console.error(error);
+      document.getElementById('loadingMotorText').innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-xmark"></i> Erro interno ao processar a planilha de regras.</span>';
+    }
   }
 
   // =========================================================================
-  // GESTÃO DE DADOS, MOCK OFFLINE E CONSULTAS RESILIENTES
+  // MÓDULO DE AVALIAÇÃO DE ENQUADRAMENTO (REPLICA EXATA DA CÉLULA M19 DO EXCEL)
   // =========================================================================
-  let arrayResultadosGlobais = [];
+
+  // Trata paridade de municípios da BrasilAPI que podem divergir da escrita da planilha
+  const MAPA_MUNICIPIOS = {
+    'parati': 'paraty',
+    'trajano de morais': 'trajano de moraes',
+    'sao tome das letras': 'sao thome das letras'
+  };
+
+  function avaliarCnaeExato(codigoBruto, municipioBruto, ufBruta) {
+    const codLimpo = cleanNumber(codigoBruto);
+    if (!codLimpo || codLimpo.length < 6 || /^0+$/.test(codLimpo)) {
+      return { valido: false, desc: 'CNAE inválida ou não preenchida' };
+    }
+    
+    const codigo7 = codLimpo.padStart(7, '0');
+    if (!ESTRUTURA_CNAE.has(codigo7)) {
+      return { 
+        valido: true, 
+        codigo: codigo7, 
+        desc: 'CNAE não catalogada na Estrutura FIRJAN', 
+        tipoNegocio: 'Comércio e Serviço', 
+        isIndustrial: false, 
+        sindicato: 'Não catalogado', 
+        regra: 'Atividade ausente na planilha oficial de estrutura', 
+        situacao: 'Outros',
+        badge: 'bg-secondary text-white' 
+      };
+    }
+
+    const info = ESTRUTURA_CNAE.get(codigo7);
+    const ufNorm = cleanText(ufBruta).toLowerCase();
+    let munNorm = cleanText(municipioBruto).toLowerCase();
+    munNorm = MAPA_MUNICIPIOS[munNorm] || munNorm;
+
+    const isIndustrial = (info.tipoNegocio === 'Indústria');
+    const descricao = info.descricao;
+    
+    let resultadoSindicato = '';
+    let regra = '';
+    let situacao = '';
+    let badge = '';
+
+    // Replica lógica do Excel:
+    // Se "Consultar Especialista"
+    if (info.tipoAssociacao === 'Consultar Especialista') {
+      resultadoSindicato = 'Consultar Especialista';
+      situacao = 'Consultar Especialista';
+      badge = 'bg-warning text-dark';
+      regra = isIndustrial 
+        ? 'Atividade Industrial — Avaliação específica (Consultar Especialista)'
+        : 'Comércio e Serviço — Consultar Especialista (associe-se@firjan.com.br)';
+    } 
+    // Se "Fora do Perfil"
+    else if (info.tipoAssociacao === 'Fora do Perfil') {
+      resultadoSindicato = 'Fora do Perfil Associativo';
+      situacao = 'Fora do Perfil';
+      badge = 'bg-secondary text-white';
+      regra = 'Fora do Perfil Associativo FIRJAN';
+    } 
+    // Se "Sindicato", faz a busca na Aba de Abrangência (M19 PROCV)
+    else if (info.tipoAssociacao === 'Sindicato') {
+      // Cria a chave dependendo da UF
+      const chaveLookup = ufNorm === 'rj' 
+        ? `${info.codigoSemZero}\vert{}${munNorm}|rj` 
+        : `${info.codigoSemZero}\vert{}\vert{}${ufNorm}`;
+      
+      const enquadramento = ABRANGENCIA.get(chaveLookup);
+      
+      if (enquadramento) {
+        resultadoSindicato = enquadramento;
+        situacao = 'Enquadrado';
+        badge = 'bg-success text-white';
+        regra = ufNorm === 'rj' 
+          ? `Enquadramento Sindical Oficial (${municipioBruto || 'RJ'}/RJ)` 
+          : `Enquadramento Sindical de Âmbito Nacional (${(ufBruta || '').toUpperCase()})`;
+      } else {
+        // Fallback do Excel caso o Sindicato não atenda aquele município/estado
+        resultadoSindicato = 'Consultar Especialista (Fora da Base Territorial)';
+        situacao = 'Consultar Especialista';
+        badge = 'bg-warning text-dark';
+        regra = 'Encaminhar para associe-se@firjan.com.br o cartão do CNPJ e print da tela do simulador.';
+      }
+    }
+
+    return {
+      valido: true,
+      codigo: codigo7,
+      desc: descricao,
+      tipoNegocio: info.tipoNegocio,
+      isIndustrial: isIndustrial,
+      sindicato: resultadoSindicato,
+      regra: regra,
+      situacao: situacao,
+      badge: badge
+    };
+  }
+
+  // =========================================================================
+  // INTEGRAÇÃO COM BRASIL API / RECEITA WS
+  // =========================================================================
 
   const MOCKS_OFFLINE = {
     "33000167000101": {
@@ -1323,6 +993,11 @@
   }
 
   async function executarProcessamento() {
+    if (!motorOficialCarregado) {
+      alert("Aguarde o carregamento do Motor Oficial FIRJAN...");
+      return;
+    }
+
     const cnpjInput = document.getElementById('cnpjInput');
     const btnProcessar = document.getElementById('btnProcessar');
     const resultsContainer = document.getElementById('resultsContainer');
@@ -1365,21 +1040,27 @@
         const uf = data.uf || 'RJ';
         const cepRaw = cleanNumber(data.cep);
         const cepFormatado = cepRaw.length === 8 ? cepRaw.replace(/^(\d{5})(\d{3})$/, "$1-$2") : (data.cep || 'Não informado');
-        const enderecoCompleto = `${logradouro}, ${numero}${complemento ? ' - ' + complemento : ''} - ${bairro}, ${municipio} - ${uf}, CEP: ${cepFormatado}`;
+        const enderecoCompleto = `${logradouro}, ${numero}${complemento ? ' - ' + complemento : ''} - ${bairro},${municipio} - ${uf}, CEP:${cepFormatado}`;
 
-        const cnaePrincipalCode = String(data.cnae_fiscal || '0000000').padStart(7, '0');
-        const cnaePrincipalDesc = data.cnae_fiscal_descricao || (baseCNAEs[cleanNumber(cnaePrincipalCode)] ? baseCNAEs[cleanNumber(cnaePrincipalCode)].desc : 'Sem descrição cadastrada');
-        const enquadramentoPrincipal = enquadrarPrincipal(cnaePrincipalCode, cnaePrincipalDesc, municipio, uf);
+        // AVALIAÇÃO OFICIAL: CNAE PRINCIPAL
+        const cnaePrincipalCode = String(data.cnae_fiscal || '0000000');
+        const avaliacaoPrincipal = avaliarCnaeExato(cnaePrincipalCode, municipio, uf);
 
+        // AVALIAÇÃO OFICIAL: CNAEs SECUNDÁRIOS
         const cnaesSecundariosRaw = data.cnaes_secundarios && Array.isArray(data.cnaes_secundarios) ? data.cnaes_secundarios : [];
-        const analiseSecundarios = analisarSecundarios(cnaesSecundariosRaw, municipio, uf);
+        const analiseSecundarios = [];
+        let temSecundarioIndustrial = false;
 
-        const sociosStr = data.qsa && Array.isArray(data.qsa) && data.qsa.length > 0
-          ? data.qsa.map(s => s.nome_socio).join(', ')
-          : 'Quadro societário não informado';
+        cnaesSecundariosRaw.forEach(sec => {
+          const avSec = avaliarCnaeExato(sec.codigo, municipio, uf);
+          if (avSec.valido) {
+            analiseSecundarios.push(avSec);
+            if (avSec.isIndustrial) temSecundarioIndustrial = true;
+          }
+        });
 
-        const divPrincipal = parseInt(cleanNumber(cnaePrincipalCode).substring(0, 2), 10);
-        const isIndustry = (divPrincipal >= 5 && divPrincipal <= 33) || (divPrincipal >= 41 && divPrincipal <= 43) || analiseSecundarios.some(s => s.situacao === "Enquadrado");
+        // DEFINIÇÃO DO PERFIL DA EMPRESA (Borda e Ícone)
+        const isIndustry = avaliacaoPrincipal.isIndustrial || temSecundarioIndustrial;
 
         const empresaObj = {
           id: i + 1,
@@ -1389,17 +1070,12 @@
           situacao: data.descricao_situacao_cadastral || 'ATIVA',
           dataAbertura: data.data_inicio_atividade || 'Não informada',
           porte: data.porte || 'DEMAIS',
-          socios: sociosStr,
+          socios: data.qsa && data.qsa.length > 0 ? data.qsa.map(s => s.nome_socio).join(', ') : 'Não informado',
           logradouro, numero, complemento, bairro, municipio, uf,
           cep: cepFormatado, enderecoCompleto,
-          cnaePrincipal: {
-            code: cnaePrincipalCode.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"),
-            rawCode: cnaePrincipalCode,
-            desc: cnaePrincipalDesc,
-            enquadramento: enquadramentoPrincipal
-          },
+          cnaePrincipal: avaliacaoPrincipal,
           cnaesSecundarios: analiseSecundarios,
-          isIndustry,
+          isIndustry: isIndustry,
           avisoOffline: !!data.avisoOffline
         };
 
@@ -1410,7 +1086,7 @@
         renderErrorCard(cnpjFormatado, err.message);
       }
 
-      await sleep(80);
+      await sleep(50);
     }
 
     if (progressText) progressText.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i>Processamento de <strong>${cnpjs.length}</strong> empresa(s) concluído com sucesso!`;
@@ -1428,7 +1104,7 @@
     card.className = `company-card ${emp.isIndustry ? 'is-industry' : 'not-industry'}`;
     card.id = `empresa-card-${emp.id}`;
 
-    const ep = emp.cnaePrincipal.enquadramento;
+    const ep = emp.cnaePrincipal;
 
     let secundariosHtml = '';
     if (emp.cnaesSecundarios.length > 0) {
@@ -1437,11 +1113,11 @@
 
       const linhasSec = emp.cnaesSecundarios.map((s) => `
         <tr class="sec-row" data-situacao="${s.situacao}">
-          <td style="width: 15%"><span class="badge bg-secondary font-monospace">${s.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span></td>
+          <td style="width: 15%"><span class="badge bg-secondary font-monospace">${s.codigo.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span></td>
           <td style="width: 32%"><span class="text-dark fw-normal">${s.desc}</span></td>
-          <td style="width: 25%"><strong class="${s.situacao === 'Enquadrado' ? 'text-primary' : 'text-muted'}">${s.sindicato}</strong></td>
+          <td style="width: 25%"><strong class="${s.situacao === 'Enquadrado' ? 'text-success' : 'text-muted'}">${s.sindicato}</strong></td>
           <td style="width: 18%"><span class="text-secondary small">${s.regra}</span></td>
-          <td style="width: 10%"><span class="badge ${s.badgeClass}">${s.situacao}</span></td>
+          <td style="width: 10%"><span class="badge ${s.badge}">${s.situacao}</span></td>
         </tr>
       `).join('');
 
@@ -1469,7 +1145,7 @@
                     <thead>
                       <tr>
                         <th>CNAE Secundário</th>
-                        <th>Descrição da Atividade</th>
+                        <th>Descrição da Atividade (IBGE/FIRJAN)</th>
                         <th>Sindicato Patronal Mapeado</th>
                         <th>Regra / Fundamento</th>
                         <th>Situação</th>
@@ -1500,8 +1176,7 @@
           <div class="d-flex align-items-center gap-2 mb-1">
             <span class="font-monospace fw-bold fs-5 text-primary">${emp.cnpj}</span>
             <span class="badge bg-light text-dark border font-monospace">${emp.porte}</span>
-            <span class="badge ${emp.situacao === 'ATIVA' ? 'bg-success' : 'bg-danger'}">${emp.situacao}</span>
-            ${emp.avisoOffline ? '<span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>Modo Simulação (API Indisponível)</span>' : ''}
+            <span class="badge ${emp.situacao === 'ATIVA' ? 'bg-success' : 'bg-danger'}">${emp.situacao}</span>${emp.avisoOffline ? '<span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>Modo Simulação (API Indisponível)</span>' : ''}
           </div>
           <h5 class="fw-bold text-dark mb-0">${emp.razaoSocial}</h5>
           <div class="small text-muted"><i class="fa-regular fa-id-card me-1"></i>Nome Fantasia: <strong>${emp.nomeFantasia}</strong></div>
@@ -1521,9 +1196,9 @@
                 <i class="fa-solid fa-location-dot me-1 text-danger"></i> DADOS CADASTRAIS & LOCALIZAÇÃO
               </div>
               <div class="small mb-1"><strong>Logradouro:</strong> ${emp.logradouro}</div>
-              <div class="small mb-1"><strong>Número / Compl.:</strong> ${emp.numero} ${emp.complemento ? '(' + emp.complemento + ')' : ''}</div>
+              <div class="small mb-1"><strong>Número / Compl.:</strong> ${emp.numero}${emp.complemento ? '(' + emp.complemento + ')' : ''}</div>
               <div class="small mb-1"><strong>Bairro / Distrito:</strong> <span class="badge bg-light text-dark border">${emp.bairro}</span></div>
-              <div class="small mb-1"><strong>Município / UF:</strong> <strong>${emp.municipio} - ${emp.uf}</strong></div>
+              <div class="small mb-1"><strong>Município / UF:</strong> <strong>${emp.municipio} -${emp.uf}</strong></div>
               <div class="small mb-2"><strong>CEP:</strong> <span class="font-monospace">${emp.cep}</span></div>
               <div class="small border-top pt-2 mt-2">
                 <div><strong>Data de Abertura:</strong> ${emp.dataAbertura}</div>
@@ -1533,522 +1208,3 @@
           </div>
 
           <div class="col-lg-7">
-            <div class="box-enquadramento-destaque">
-              <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
-                <span class="fw-bold text-dark small"><i class="fa-solid fa-certificate me-1 text-primary"></i>ENQUADRAMENTO SINDICAL OFICIAL (CNAE PRINCIPAL)</span>
-                <span class="badge ${ep.badgeClass} shadow-sm">${ep.situacao}</span>
-              </div>
-              <div class="mb-2">
-                <div class="small text-muted">Sindicato Patronal Competente:</div>
-                <div class="sindicato-titulo">${ep.sindicato}</div>
-              </div>
-              <div class="small mb-2">
-                <strong>Atividade Preponderante:</strong><br>
-                <span class="badge bg-primary font-monospace me-1">${emp.cnaePrincipal.code}</span>
-                <span class="text-dark">${emp.cnaePrincipal.desc}</span>
-              </div>
-              <div class="regra-box">
-                <div class="small"><strong>Regra / Fundamento Aplicado:</strong></div>
-                <div class="text-dark small">${ep.regra}</div>
-                <div class="small mt-1 text-muted"><strong>Nível de Confiança:</strong> ${ep.confianca} | <strong>Localidade:</strong> ${emp.municipio} (${emp.uf})</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        ${secundariosHtml}
-      </div>
-    `;
-
-    if (resultsContainer) resultsContainer.appendChild(card);
-  }
-
-  function toggleAccordion(collapseId) {
-    const el = document.getElementById(collapseId);
-    if (el) {
-      const isShown = el.classList.contains('show') || el.style.display === 'block';
-      if (isShown) {
-        el.classList.remove('show');
-        el.style.display = 'none';
-      } else {
-        el.classList.add('show');
-        el.style.display = 'block';
-      }
-    }
-  }
-
-  function renderErrorCard(cnpjStr, msg) {
-    const resultsContainer = document.getElementById('resultsContainer');
-    const card = document.createElement('div');
-    card.className = "company-card not-industry p-3 border-danger";
-    card.innerHTML = `
-      <div class="d-flex align-items-center gap-3">
-        <i class="fa-solid fa-triangle-exclamation text-danger fs-3"></i>
-        <div>
-          <div class="fw-bold font-monospace text-danger">${cnpjStr}</div>
-          <div class="text-muted small">${msg}</div>
-        </div>
-      </div>
-    `;
-    if (resultsContainer) resultsContainer.appendChild(card);
-  }
-
-  function exportarExcel() {
-    if (!arrayResultadosGlobais || arrayResultadosGlobais.length === 0) {
-      alert("Não há dados de empresas para exportar. Realize uma consulta primeiro ou clique em 'Carregar Exemplos'.");
-      return;
-    }
-
-    const dadosTriagem = arrayResultadosGlobais.map(emp => ({
-      "CNPJ": emp.cnpj,
-      "Razão Social": emp.razaoSocial,
-      "Nome Fantasia": emp.nomeFantasia,
-      "Situação": emp.situacao,
-      "Abertura": emp.dataAbertura,
-      "Porte": emp.porte,
-      "Sócios (QSA)": emp.socios,
-      "Logradouro": emp.logradouro,
-      "Número": emp.numero,
-      "Complemento": emp.complemento,
-      "Bairro / Distrito": emp.bairro,
-      "Município": emp.municipio,
-      "UF": emp.uf,
-      "CEP": emp.cep,
-      "Endereço Completo": emp.enderecoCompleto,
-      "CNAE Principal": emp.cnaePrincipal.code,
-      "Descrição CNAE Principal": emp.cnaePrincipal.desc,
-      "Sindicato Enquadrado (Principal)": emp.cnaePrincipal.enquadramento.sindicato,
-      "Regra Utilizada": emp.cnaePrincipal.enquadramento.regra,
-      "Situação Enquadramento": emp.cnaePrincipal.enquadramento.situacao,
-      "Total Secundários": emp.cnaesSecundarios.length,
-      "Resumo Secundários Enquadrados": emp.cnaesSecundarios.filter(s => s.situacao === 'Enquadrado').map(s => `${s.cnae}: ${s.sindicato}`).join(" | ") || "Nenhum"
-    }));
-
-    if (typeof XLSX !== 'undefined') {
-      const wb = XLSX.utils.book_new();
-      const ws1 = XLSX.utils.json_to_sheet(dadosTriagem);
-      XLSX.utils.book_append_sheet(wb, ws1, "Triagem_CNPJ");
-
-      const dadosSecundarios = [];
-      arrayResultadosGlobais.forEach(emp => {
-        if (emp.cnaesSecundarios.length > 0) {
-          emp.cnaesSecundarios.forEach(sec => {
-            dadosSecundarios.push({
-              "CNPJ": emp.cnpj,
-              "Razão Social": emp.razaoSocial,
-              "Município": emp.municipio,
-              "UF": emp.uf,
-              "CNAE Secundário": sec.cnae,
-              "Descrição da Atividade Secundária": sec.desc,
-              "Sindicato Enquadrado": sec.sindicato,
-              "Regra de Enquadramento": sec.regra,
-              "Situação": sec.situacao
-            });
-          });
-        }
-      });
-      if (dadosSecundarios.length > 0) {
-        const ws2 = XLSX.utils.json_to_sheet(dadosSecundarios);
-        XLSX.utils.book_append_sheet(wb, ws2, "Secundarios_Detalhado");
-      }
-
-      const catalogoDados = SINDICATOS_CATALOGO.map(s => ({
-        "Sigla": s.sigla,
-        "Nome Completo do Sindicato Oficial": s.nome,
-        "Âmbito Territorial": s.ambito,
-        "Abrangência": s.abrang,
-        "Prefixo CNAE / Setor Econômico": s.cnaes
-      }));
-      const ws3 = XLSX.utils.json_to_sheet(catalogoDados);
-      XLSX.utils.book_append_sheet(wb, ws3, "Regras_Sindicatos");
-
-      const municipiosDados = [];
-      Object.keys(REGIOES_RJ).sort().forEach(reg => {
-        REGIOES_RJ[reg].sort().forEach(mun => {
-          municipiosDados.push({
-            "Município": mun,
-            "Região Oficial FIRJAN": reg,
-            "UF": "RJ"
-          });
-        });
-      });
-      const ws4 = XLSX.utils.json_to_sheet(municipiosDados);
-      XLSX.utils.book_append_sheet(wb, ws4, "De_Para_Municipios_RJ");
-
-      const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Consultor_Corporativo_Enquadramento_Sindical_FIRJAN_${dateStr}.xlsx`);
-    } else {
-      let csv = "CNPJ;Razão Social;Município;UF;CNAE Principal;Sindicato Principal;Regra;Situação\n";
-      dadosTriagem.forEach(d => {
-        csv += `"${d.CNPJ}";"${d['Razão Social']}";"${d['Município']}";"${d['UF']}";"${d['CNAE Principal']}";"${d['Sindicato Enquadrado (Principal)']}";"${d['Regra Utilizada']}";"${d['Situação Enquadramento']}"\n`;
-      });
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "Triagem_Sindical_FIRJAN.csv";
-      a.click();
-    }
-  }
-
-  function copiarTsv() {
-    if (!arrayResultadosGlobais || arrayResultadosGlobais.length === 0) {
-      alert("Não há dados para copiar. Realize uma consulta primeiro ou clique em 'Carregar Exemplos'.");
-      return;
-    }
-
-    let tsv = ["CNPJ", "Razão Social", "Município", "UF", "Bairro", "CNAE Principal", "Sindicato Principal", "Regra Principal", "Secundários Enquadrados"].join("\t") + "\n";
-    arrayResultadosGlobais.forEach(emp => {
-      const secStr = emp.cnaesSecundarios.filter(s => s.situacao === 'Enquadrado').map(s => `${s.cnae} -> ${s.sindicato}`).join(" | ") || "Nenhum";
-      tsv += [emp.cnpj, emp.razaoSocial, emp.municipio, emp.uf, emp.bairro, emp.cnaePrincipal.code, emp.cnaePrincipal.enquadramento.sindicato, emp.cnaePrincipal.enquadramento.regra, secStr].join("\t") + "\n";
-    });
-
-    try {
-      navigator.clipboard.writeText(tsv).then(() => {
-        alert("Dados copiados com sucesso em formato TSV (compatível com Excel e Google Sheets)!");
-      }).catch(() => {
-        const ta = document.createElement("textarea");
-        ta.value = tsv;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        alert("Dados copiados com sucesso!");
-      });
-    } catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = tsv;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      alert("Dados copiados com sucesso!");
-    }
-  }
-
-  function imprimirRelatorio() {
-    if (!arrayResultadosGlobais || arrayResultadosGlobais.length === 0) {
-      alert("Não há dados para imprimir.");
-      return;
-    }
-    document.querySelectorAll('.accordion-collapse').forEach(el => el.classList.add('show'));
-    window.print();
-  }
-
-  function renderCatalogo(filtro = '') {
-    const corpoCatalogo = document.getElementById('corpoCatalogoSindicatos');
-    if (!corpoCatalogo) return;
-    corpoCatalogo.innerHTML = '';
-    const termo = cleanText(filtro);
-
-    SINDICATOS_CATALOGO.filter(s => {
-      if (!termo) return true;
-      return cleanText(s.sigla).includes(termo) || cleanText(s.nome).includes(termo) || cleanText(s.abrang).includes(termo) || cleanText(s.cnaes).includes(termo);
-    }).forEach(s => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span class="badge bg-primary font-monospace">${s.sigla}</span></td>
-        <td><strong>${s.nome}</strong></td>
-        <td><span class="badge ${s.ambito === 'Nacional' ? 'bg-success' : (s.ambito.includes('Estadual') ? 'bg-info text-dark' : 'bg-secondary')}">${s.ambito}</span></td>
-        <td class="small text-muted">${s.abrang}</td>
-        <td class="small font-monospace text-secondary">${s.cnaes}</td>
-      `;
-      corpoCatalogo.appendChild(tr);
-    });
-  }
-
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('.btn-filter');
-    if (!btn) return;
-
-    const targetCardId = btn.getAttribute('data-target');
-    const filter = btn.getAttribute('data-filter');
-    const card = document.getElementById(targetCardId);
-    if (!card) return;
-
-    card.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    card.querySelectorAll('.sec-row').forEach(row => {
-      const sit = row.getAttribute('data-situacao');
-      if (filter === 'TODOS') {
-        row.style.display = '';
-      } else if (filter === 'Enquadrado') {
-        row.style.display = (sit === 'Enquadrado') ? '' : 'none';
-      } else {
-        row.style.display = (sit !== 'Enquadrado') ? '' : 'none';
-      }
-    });
-  });
-
-  // Exportar todas as funções para o escopo global window
-  window.mudarAba = mudarAba;
-  window.carregarExemplos = carregarExemplos;
-  window.limparTudo = limparTudo;
-  window.executarProcessamento = executarProcessamento;
-  window.toggleAccordion = toggleAccordion;
-  window.exportarExcel = exportarExcel;
-  window.copiarTsv = copiarTsv;
-  window.imprimirRelatorio = imprimirRelatorio;
-  window.renderCatalogo = renderCatalogo;
-
-  function inicializarEventos() {
-    const cnpjInput = document.getElementById('cnpjInput');
-    const cnpjCountBadge = document.getElementById('cnpjCountBadge');
-    if (cnpjInput && cnpjCountBadge) {
-      cnpjInput.addEventListener('input', () => {
-        const list = cnpjInput.value.split(/[\n,;]+/).map(cleanNumber).filter(c => c.length === 14);
-        cnpjCountBadge.innerText = `${list.length} inserido(s)`;
-      });
-    }
-
-    // Vinculação imperativa nos botões para garantir redundância ao onclick
-    const btnCarregar = document.getElementById('btnCarregarExemplos');
-    if (btnCarregar) btnCarregar.onclick = carregarExemplos;
-
-    const btnProc = document.getElementById('btnProcessar');
-    if (btnProc) btnProc.onclick = executarProcessamento;
-
-    const btnLimp = document.getElementById('btnLimpar');
-    if (btnLimp) btnLimp.onclick = limparTudo;
-
-    const btnExp = document.getElementById('btnExportarExcel');
-    if (btnExp) btnExp.onclick = exportarExcel;
-
-    const btnCop = document.getElementById('btnCopiarTsv');
-    if (btnCop) btnCop.onclick = copiarTsv;
-
-    const btnImp = document.getElementById('btnImprimirPdf');
-    if (btnImp) btnImp.onclick = imprimirRelatorio;
-
-    renderCatalogo();
-  }
-
-  // Inicializa imediatamente e também no DOMContentLoaded
-  inicializarEventos();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarEventos);
-  }
-  </script>
-
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
- <!-- ============================================================================
-     CORREÇÃO DA COLUNA "DESCRIÇÃO DA ATIVIDADE" DOS CNAEs
-     Substitui "Comércio / Serviços" pela descrição oficial de cada CNAE
-============================================================================= -->
-<script>
-(function () {
-  'use strict';
-
-  // Dicionário em memória: codigo7Digitos (ex: "4721102") -> Descrição Oficial da CNAE
-  const mapaDescricoesCnae = new Map();
-
-  function normalizarCodigoCnae(valor) {
-    if (valor === null || valor === undefined) return null;
-    const digitos = String(valor).replace(/\D/g, '');
-    if (digitos.length < 6 || digitos.length > 7 || /^0+$/.test(digitos)) return null;
-    return digitos.padStart(7, '0');
-  }
-
-  function textoEhGenerico(texto) {
-    if (!texto) return true;
-    const limpo = String(texto).trim().toLowerCase();
-    return (
-      limpo === '' ||
-      limpo === '-' ||
-      limpo === 'comércio / serviços' ||
-      limpo === 'comercio / servicos' ||
-      limpo === 'comércio/serviços' ||
-      limpo === 'comércio' ||
-      limpo === 'serviços' ||
-      limpo === 'não informada' ||
-      limpo === 'nao informada' ||
-      limpo === 'não catalogado' ||
-      limpo === 'outros' ||
-      limpo === 'undefined'
-    );
-  }
-
-  function salvarDescricaoNoMapa(codigoBruto, descricaoBruta) {
-    const cod = normalizarCodigoCnae(codigoBruto);
-    if (!cod || !descricaoBruta) return;
-    const desc = String(descricaoBruta).trim();
-    if (textoEhGenerico(desc)) return;
-    mapaDescricoesCnae.set(cod, desc);
-  }
-
-  // 1. Carrega o catálogo oficial completo de Subclasses CNAE do IBGE (todas as 1.355 CNAEs)
-  async function carregarCatalogoIbge() {
-    try {
-      const cacheSalvo = sessionStorage.getItem('ibge_cnae_subclasses_v2');
-      if (cacheSalvo) {
-        const pares = JSON.parse(cacheSalvo);
-        if (Array.isArray(pares)) {
-          pares.forEach(([k, v]) => mapaDescricoesCnae.set(k, v));
-          atualizarDescricoesCnae();
-          return;
-        }
-      }
-
-      const resp = await fetch('https://servicodados.ibge.gov.br/api/v2/cnae/subclasses');
-      if (!resp.ok) return;
-      const dados = await resp.json();
-      if (Array.isArray(dados)) {
-        dados.forEach((item) => {
-          if (item && item.id && item.descricao) {
-            salvarDescricaoNoMapa(item.id, item.descricao);
-          }
-        });
-        try {
-          sessionStorage.setItem(
-            'ibge_cnae_subclasses_v2',
-            JSON.stringify(Array.from(mapaDescricoesCnae.entries()))
-          );
-        } catch (_) {}
-        atualizarDescricoesCnae();
-      }
-    } catch (_) {}
-  }
-
-  // 2. Intercepta passivamente o retorno da BrasilAPI para capturar a descrição exata de cada CNAE do CNPJ
-  const fetchOriginal = window.fetch;
-  if (fetchOriginal) {
-    window.fetch = async function (...args) {
-      const response = await fetchOriginal.apply(this, args);
-      try {
-        const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
-        if (url.includes('cnpj') && response && response.ok) {
-          const clone = response.clone();
-          clone.json().then((data) => {
-            if (!data) return;
-
-            if (data.cnae_fiscal) {
-              salvarDescricaoNoMapa(data.cnae_fiscal, data.cnae_fiscal_descricao);
-            }
-            if (Array.isArray(data.cnaes_secundarios)) {
-              data.cnaes_secundarios.forEach((sec) => {
-                if (sec) salvarDescricaoNoMapa(sec.codigo, sec.descricao);
-              });
-            }
-
-            setTimeout(atualizarDescricoesCnae, 50);
-          }).catch(() => {});
-        }
-      } catch (_) {}
-      return response;
-    };
-  }
-
-  // 3. Atualiza os objetos em memória (arrayResultadosGlobais) para manter filtros e Excel sincronizados
-  function atualizarObjetosEmMemoria() {
-    try {
-      const lista =
-        (typeof arrayResultadosGlobais !== 'undefined' && Array.isArray(arrayResultadosGlobais)
-          ? arrayResultadosGlobais
-          : window.arrayResultadosGlobais) || [];
-
-      lista.forEach((emp) => {
-        if (!emp || typeof emp !== 'object') return;
-
-        const listasSecundarios = [
-          emp.cnaesSecundarios,
-          emp.cnaes_secundarios,
-          emp.secundarios,
-          emp.todasAnalisadas,
-          emp.cnaes,
-          emp.enquadramento && emp.enquadramento.secundarios,
-          emp.enquadramento && emp.enquadramento.todasAnalisadas,
-          emp.enquadramento && emp.enquadramento.cnaesSecundarios
-        ];
-
-        listasSecundarios.forEach((arr) => {
-          if (!Array.isArray(arr)) return;
-          arr.forEach((item) => {
-            if (!item || typeof item !== 'object') return;
-            const cod = normalizarCodigoCnae(
-              item.codigo || item.codigoNormalizado || item.cnae || item.code
-            );
-            if (!cod) return;
-            const descReal = mapaDescricoesCnae.get(cod);
-            if (!descReal) return;
-
-            if ('descricao' in item && textoEhGenerico(item.descricao)) {
-              item.descricao = descReal;
-            }
-            if ('atividade' in item && textoEhGenerico(item.atividade)) {
-              item.atividade = descReal;
-            }
-            if ('descricaoAtividade' in item && textoEhGenerico(item.descricaoAtividade)) {
-              item.descricaoAtividade = descReal;
-            }
-          });
-        });
-      });
-    } catch (_) {}
-  }
-
-  // 4. Substitui "Comércio / Serviços" na coluna "Descrição da Atividade" das tabelas na tela
-  function atualizarDescricoesCnae() {
-    atualizarObjetosEmMemoria();
-
-    const container =
-      document.getElementById('resultsContainer') ||
-      document.getElementById('resultBody') ||
-      document.body;
-
-    // Varre todas as linhas de tabelas dentro dos resultados
-    const linhas = container.querySelectorAll('table tbody tr');
-    linhas.forEach((tr) => {
-      const celulas = tr.querySelectorAll('td');
-      if (celulas.length < 2) return;
-
-      // 1ª coluna: código do CNAE Secundário (ex: 4721-1/02)
-      const textoCodigo = (celulas[0].textContent || '').trim();
-      const codLimpo = normalizarCodigoCnae(textoCodigo);
-      if (!codLimpo) return;
-
-      const descricaoReal = mapaDescricoesCnae.get(codLimpo);
-      if (!descricaoReal) return;
-
-      // 2ª coluna: Descrição da Atividade (onde aparecia "Comércio / Serviços")
-      const celulaDescricao = celulas[1];
-      const textoAtual = (celulaDescricao.textContent || '').trim();
-
-      if (textoEhGenerico(textoAtual) && textoAtual !== descricaoReal) {
-        celulaDescricao.textContent = descricaoReal;
-      }
-    });
-  }
-
-  // 5. Observa mudanças na tela (novas consultas ou cliques nos botões Todos / Enquadrados / Outros)
-  function iniciar() {
-    carregarCatalogoIbge();
-
-    const alvo =
-      document.getElementById('resultsContainer') ||
-      document.getElementById('resultBody') ||
-      document.body;
-
-    let timer = null;
-    const observer = new MutationObserver(() => {
-      clearTimeout(timer);
-      timer = setTimeout(atualizarDescricoesCnae, 30);
-    });
-
-    observer.observe(alvo, {
-      childList: true,
-      subtree: true
-    });
-
-    atualizarDescricoesCnae();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciar);
-  } else {
-    iniciar();
-  }
-})();
-</script>
-</body>
-</html>
