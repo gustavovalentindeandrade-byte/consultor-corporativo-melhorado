@@ -1832,28 +1832,16 @@
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- ============================================================================
-     ENRIQUECIMENTO AUTOMÁTICO: ATIVIDADE DA CNAE AO LADO DO NÚMERO DA CNAE
-     Executa automaticamente ao exibir os CNPJs e enquadramentos (Sem botões extras)
+ <!-- ============================================================================
+     CORREÇÃO DA COLUNA "DESCRIÇÃO DA ATIVIDADE" DOS CNAEs
+     Substitui "Comércio / Serviços" pela descrição oficial de cada CNAE
 ============================================================================= -->
-<style>
-  .cnae-atividade-inline {
-    font-weight: 500;
-    color: #334155;
-  }
-  .badge .cnae-atividade-inline {
-    color: inherit;
-    font-weight: 400;
-    opacity: 0.95;
-  }
-</style>
-
 <script>
 (function () {
   'use strict';
 
-  // Dicionário em memória: codigo7Digitos -> Descrição Oficial da Atividade
-  const dicionarioAtividadesCnae = new Map();
+  // Dicionário em memória: codigo7Digitos (ex: "4721102") -> Descrição Oficial da CNAE
+  const mapaDescricoesCnae = new Map();
 
   function normalizarCodigoCnae(valor) {
     if (valor === null || valor === undefined) return null;
@@ -1862,50 +1850,67 @@
     return digitos.padStart(7, '0');
   }
 
-  function registrarAtividade(codigoBruto, descricaoBruta) {
+  function textoEhGenerico(texto) {
+    if (!texto) return true;
+    const limpo = String(texto).trim().toLowerCase();
+    return (
+      limpo === '' ||
+      limpo === '-' ||
+      limpo === 'comércio / serviços' ||
+      limpo === 'comercio / servicos' ||
+      limpo === 'comércio/serviços' ||
+      limpo === 'comércio' ||
+      limpo === 'serviços' ||
+      limpo === 'não informada' ||
+      limpo === 'nao informada' ||
+      limpo === 'não catalogado' ||
+      limpo === 'outros' ||
+      limpo === 'undefined'
+    );
+  }
+
+  function salvarDescricaoNoMapa(codigoBruto, descricaoBruta) {
     const cod = normalizarCodigoCnae(codigoBruto);
     if (!cod || !descricaoBruta) return;
     const desc = String(descricaoBruta).trim();
-    if (!desc || desc.toLowerCase() === 'não informada' || desc.toLowerCase() === 'undefined') return;
-    dicionarioAtividadesCnae.set(cod, desc);
+    if (textoEhGenerico(desc)) return;
+    mapaDescricoesCnae.set(cod, desc);
   }
 
-  // 1. Carrega descrições que já existam na baseCNAEs interna do sistema (se houver)
-  function carregarDaBaseInterna() {
+  // 1. Carrega o catálogo oficial completo de Subclasses CNAE do IBGE (todas as 1.355 CNAEs)
+  async function carregarCatalogoIbge() {
     try {
-      const fonte = (typeof baseCNAEs !== 'undefined' && baseCNAEs) || window.baseCNAEs;
-      if (fonte && typeof fonte === 'object') {
-        Object.keys(fonte).forEach((chave) => {
-          const item = fonte[chave];
-          if (typeof item === 'string') {
-            registrarAtividade(chave, item);
-          } else if (item && typeof item === 'object') {
-            registrarAtividade(chave, item.descricao || item.atividade || item.denominacao || item.nome);
-          }
-        });
+      const cacheSalvo = sessionStorage.getItem('ibge_cnae_subclasses_v2');
+      if (cacheSalvo) {
+        const pares = JSON.parse(cacheSalvo);
+        if (Array.isArray(pares)) {
+          pares.forEach(([k, v]) => mapaDescricoesCnae.set(k, v));
+          atualizarDescricoesCnae();
+          return;
+        }
       }
-    } catch (_) {}
-  }
 
-  // 2. Carrega o dicionário completo de Subclasses CNAE direto da API Oficial do IBGE
-  async function carregarDicionarioIbge() {
-    try {
       const resp = await fetch('https://servicodados.ibge.gov.br/api/v2/cnae/subclasses');
       if (!resp.ok) return;
-      const lista = await resp.json();
-      if (Array.isArray(lista)) {
-        lista.forEach((item) => {
+      const dados = await resp.json();
+      if (Array.isArray(dados)) {
+        dados.forEach((item) => {
           if (item && item.id && item.descricao) {
-            registrarAtividade(item.id, item.descricao);
+            salvarDescricaoNoMapa(item.id, item.descricao);
           }
         });
-        aplicarDescricaoNasCnaesDaTela();
+        try {
+          sessionStorage.setItem(
+            'ibge_cnae_subclasses_v2',
+            JSON.stringify(Array.from(mapaDescricoesCnae.entries()))
+          );
+        } catch (_) {}
+        atualizarDescricoesCnae();
       }
     } catch (_) {}
   }
 
-  // 3. Intercepta passivamente as consultas de CNPJ (BrasilAPI / ReceitaWS / CNPJ.ws)
-  // para capturar imediatamente a atividade do CNAE Principal e dos Secundários
+  // 2. Intercepta passivamente o retorno da BrasilAPI para capturar a descrição exata de cada CNAE do CNPJ
   const fetchOriginal = window.fetch;
   if (fetchOriginal) {
     window.fetch = async function (...args) {
@@ -1917,31 +1922,16 @@
           clone.json().then((data) => {
             if (!data) return;
 
-            // Formato BrasilAPI
             if (data.cnae_fiscal) {
-              registrarAtividade(data.cnae_fiscal, data.cnae_fiscal_descricao);
+              salvarDescricaoNoMapa(data.cnae_fiscal, data.cnae_fiscal_descricao);
             }
             if (Array.isArray(data.cnaes_secundarios)) {
               data.cnaes_secundarios.forEach((sec) => {
-                if (sec) registrarAtividade(sec.codigo, sec.descricao);
+                if (sec) salvarDescricaoNoMapa(sec.codigo, sec.descricao);
               });
             }
 
-            // Formato publica.cnpj.ws (caso utilizado como fallback)
-            if (data.estabelecimento) {
-              const est = data.estabelecimento;
-              if (est.atividade_principal) {
-                registrarAtividade(est.atividade_principal.id, est.atividade_principal.descricao);
-              }
-              if (Array.isArray(est.atividades_secundarias)) {
-                est.atividades_secundarias.forEach((sec) => {
-                  if (sec) registrarAtividade(sec.id, sec.descricao);
-                });
-              }
-            }
-
-            // Atualiza a tela assim que o JSON do CNPJ é processado
-            setTimeout(aplicarDescricaoNasCnaesDaTela, 60);
+            setTimeout(atualizarDescricoesCnae, 50);
           }).catch(() => {});
         }
       } catch (_) {}
@@ -1949,152 +1939,100 @@
     };
   }
 
-  function normalizarTextoComparacao(str) {
-    return String(str || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
+  // 3. Atualiza os objetos em memória (arrayResultadosGlobais) para manter filtros e Excel sincronizados
+  function atualizarObjetosEmMemoria() {
+    try {
+      const lista =
+        (typeof arrayResultadosGlobais !== 'undefined' && Array.isArray(arrayResultadosGlobais)
+          ? arrayResultadosGlobais
+          : window.arrayResultadosGlobais) || [];
+
+      lista.forEach((emp) => {
+        if (!emp || typeof emp !== 'object') return;
+
+        const listasSecundarios = [
+          emp.cnaesSecundarios,
+          emp.cnaes_secundarios,
+          emp.secundarios,
+          emp.todasAnalisadas,
+          emp.cnaes,
+          emp.enquadramento && emp.enquadramento.secundarios,
+          emp.enquadramento && emp.enquadramento.todasAnalisadas,
+          emp.enquadramento && emp.enquadramento.cnaesSecundarios
+        ];
+
+        listasSecundarios.forEach((arr) => {
+          if (!Array.isArray(arr)) return;
+          arr.forEach((item) => {
+            if (!item || typeof item !== 'object') return;
+            const cod = normalizarCodigoCnae(
+              item.codigo || item.codigoNormalizado || item.cnae || item.code
+            );
+            if (!cod) return;
+            const descReal = mapaDescricoesCnae.get(cod);
+            if (!descReal) return;
+
+            if ('descricao' in item && textoEhGenerico(item.descricao)) {
+              item.descricao = descReal;
+            }
+            if ('atividade' in item && textoEhGenerico(item.atividade)) {
+              item.atividade = descReal;
+            }
+            if ('descricaoAtividade' in item && textoEhGenerico(item.descricaoAtividade)) {
+              item.descricaoAtividade = descReal;
+            }
+          });
+        });
+      });
+    } catch (_) {}
   }
 
-  function obterDescricaoCnae(codigoBruto) {
-    const cod = normalizarCodigoCnae(codigoBruto);
-    if (!cod) return null;
-    return dicionarioAtividadesCnae.get(cod) || null;
-  }
+  // 4. Substitui "Comércio / Serviços" na coluna "Descrição da Atividade" das tabelas na tela
+  function atualizarDescricoesCnae() {
+    atualizarObjetosEmMemoria();
 
-  // 4. Varre os cards renderizados e adiciona a atividade ao lado de cada número de CNAE
-  function aplicarDescricaoNasCnaesDaTela() {
     const container =
       document.getElementById('resultsContainer') ||
-      document.getElementById('resultBody');
-    if (!container) return;
+      document.getElementById('resultBody') ||
+      document.body;
 
-    // Padrão 1: CNAEs formatados (ex: 10.11-2-01, 10.11-2/01, 1011-2/01, 1011-2-01)
-    // Padrão 2: CNAEs de 7 dígitos puros (ex: 1011201) que existam no dicionário de CNAEs
-    const regexCnaeFormatado = /\b(\d{2}\.?\d{2}-\d(?:-|/)\d{2})\b/g;
-    const regexCnaeSeteDigitos = /\b(\d{7})\b/g;
+    // Varre todas as linhas de tabelas dentro dos resultados
+    const linhas = container.querySelectorAll('table tbody tr');
+    linhas.forEach((tr) => {
+      const celulas = tr.querySelectorAll('td');
+      if (celulas.length < 2) return;
 
-    const elementos = container.querySelectorAll('span, strong, b, td, li, div, p, code, small');
+      // 1ª coluna: código do CNAE Secundário (ex: 4721-1/02)
+      const textoCodigo = (celulas[0].textContent || '').trim();
+      const codLimpo = normalizarCodigoCnae(textoCodigo);
+      if (!codLimpo) return;
 
-    elementos.forEach((el) => {
-      // Evita processar containers pais grandes; foca nos elementos de ponta que contêm o código
-      if (el.children.length > 3) return;
-      if (el.classList && el.classList.contains('cnae-atividade-inline')) return;
+      const descricaoReal = mapaDescricoesCnae.get(codLimpo);
+      if (!descricaoReal) return;
 
-      const textoElemento = (el.textContent || '').trim();
-      if (!textoElemento) return;
+      // 2ª coluna: Descrição da Atividade (onde aparecia "Comércio / Serviços")
+      const celulaDescricao = celulas[1];
+      const textoAtual = (celulaDescricao.textContent || '').trim();
 
-      // Ignora textos que são claramente CNPJ, CEP ou Telefone
-      if (/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(textoElemento)) return;
-      if (/^cep\b/i.test(textoElemento) || /^\d{5}-\d{3}$/.test(textoElemento)) return;
-
-      // Caso A: O elemento é um badge ou tag contendo apenas o código da CNAE (ex: <span class="badge">25.99-3-99</span> ou "CNAE 2599399")
-      const matchIsolado = textoElemento.match(/^(?:CNAE\s*:?\s*)?(\d{2}\.?\d{2}-\d(?:-|/)\d{2}|\d{7})$/i);
-      if (matchIsolado) {
-        const codigoEncontrado = matchIsolado[1];
-        const descricao = obterDescricaoCnae(codigoEncontrado);
-        if (!descricao) return;
-
-        // Verifica se a descrição já está escrita ao lado (no próximo elemento/texto irmão ou na mesma linha)
-        const contextoVizinho =
-          (el.nextSibling ? el.nextSibling.textContent : '') +
-          ' ' +
-          (el.nextElementSibling ? el.nextElementSibling.textContent : '');
-        const linhaPai = el.closest('li, tr, p') || el.parentElement;
-        const textoContexto = normalizarTextoComparacao(
-          contextoVizinho + ' ' + (linhaPai && linhaPai.children.length <= 3 ? linhaPai.textContent : '')
-        );
-        const trechoDescricao = normalizarTextoComparacao(descricao).slice(0, 18);
-
-        if (trechoDescricao && textoContexto.includes(trechoDescricao)) {
-          return; // Já possui a descrição ao lado, não duplica
-        }
-
-        // Se ao lado estiver escrito "Não informada" ou "undefined", substitui pelo texto correto
-        if (el.nextSibling && el.nextSibling.nodeType === Node.TEXT_NODE) {
-          const txtIrmao = el.nextSibling.nodeValue;
-          if (/^\s*[-–—:]\s*(não informada|undefined|null)\s*$/i.test(txtIrmao)) {
-            el.nextSibling.nodeValue = ` — ${descricao}`;
-            return;
-          }
-        }
-
-        // Evita inserir duas vezes no mesmo elemento
-        if (el.getAttribute('data-cnae-desc-ok') === '1') return;
-        el.setAttribute('data-cnae-desc-ok', '1');
-
-        const spanDesc = document.createElement('span');
-        spanDesc.className = 'cnae-atividade-inline';
-        spanDesc.textContent = ` — ${descricao}`;
-
-        // Se for um badge pequeno, insere logo após o badge (ou dentro se estiver ao lado de outros badges)
-        if (el.classList.contains('badge') && el.parentElement && el.parentElement.querySelectorAll('.badge').length > 1) {
-          el.appendChild(spanDesc);
-        } else {
-          el.insertAdjacentElement('afterend', spanDesc);
-        }
-        return;
+      if (textoEhGenerico(textoAtual) && textoAtual !== descricaoReal) {
+        celulaDescricao.textContent = descricaoReal;
       }
-
-      // Caso B: Nós de texto que contêm o código CNAE seguido ou não de texto sem a descrição
-      el.childNodes.forEach((node) => {
-        if (node.nodeType !== Node.TEXT_NODE) return;
-        let valorTexto = node.nodeValue;
-        if (!valorTexto || !/\d/.test(valorTexto)) return;
-
-        // Substitui placeholders como "00.00-0-00 - Não informada"
-        valorTexto = valorTexto.replace(
-          /(\b\d{2}\.?\d{2}-\d(?:-|/)\d{2}\b|\b\d{7}\b)(\s*[-–—:]\s*)(não informada|undefined|sem descrição)/gi,
-          (match, cod, sep) => {
-            const desc = obterDescricaoCnae(cod);
-            return desc ? `${cod}${sep}${desc}` : match;
-          }
-        );
-
-        // Adiciona a descrição ao lado de CNAEs formatados que ainda não possuem descrição na mesma frase
-        const textoLinhaNorm = normalizarTextoComparacao(el.textContent);
-        valorTexto = valorTexto.replace(regexCnaeFormatado, (match, cod) => {
-          const desc = obterDescricaoCnae(cod);
-          if (!desc) return match;
-          const trecho = normalizarTextoComparacao(desc).slice(0, 18);
-          if (trecho && textoLinhaNorm.includes(trecho)) return match;
-          return `${cod} — ${desc}`;
-        });
-
-        // Adiciona a descrição ao lado de CNAEs de 7 dígitos (quando em contexto de CNAE)
-        if (/cnae|secund|principal|atividad|industri/i.test(el.textContent + ' ' + (el.parentElement ? el.parentElement.textContent : ''))) {
-          valorTexto = valorTexto.replace(regexCnaeSeteDigitos, (match, cod) => {
-            const desc = obterDescricaoCnae(cod);
-            if (!desc) return match;
-            const trecho = normalizarTextoComparacao(desc).slice(0, 18);
-            if (trecho && textoLinhaNorm.includes(trecho)) return match;
-            return `${cod} — ${desc}`;
-          });
-        }
-
-        if (valorTexto !== node.nodeValue) {
-          node.nodeValue = valorTexto;
-        }
-      });
     });
   }
 
-  // 5. Inicialização e Monitoramento em Tempo Real (MutationObserver)
-  function iniciarMonitoramentoAutomatico() {
-    carregarDaBaseInterna();
-    carregarDicionarioIbge();
+  // 5. Observa mudanças na tela (novas consultas ou cliques nos botões Todos / Enquadrados / Outros)
+  function iniciar() {
+    carregarCatalogoIbge();
 
     const alvo =
       document.getElementById('resultsContainer') ||
       document.getElementById('resultBody') ||
       document.body;
 
-    let timerDebounce = null;
+    let timer = null;
     const observer = new MutationObserver(() => {
-      clearTimeout(timerDebounce);
-      timerDebounce = setTimeout(aplicarDescricaoNasCnaesDaTela, 40);
+      clearTimeout(timer);
+      timer = setTimeout(atualizarDescricoesCnae, 30);
     });
 
     observer.observe(alvo, {
@@ -2102,13 +2040,13 @@
       subtree: true
     });
 
-    aplicarDescricaoNasCnaesDaTela();
+    atualizarDescricoesCnae();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciarMonitoramentoAutomatico);
+    document.addEventListener('DOMContentLoaded', iniciar);
   } else {
-    iniciarMonitoramentoAutomatico();
+    iniciar();
   }
 })();
 </script>
