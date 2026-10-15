@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome 6.4 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SheetJS para Exportação Excel Completa e Leitura da Planilha Oficial -->
+  <!-- SheetJS para Exportação Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     :root {
@@ -22,309 +22,59 @@
       --ind-blue: #0284c7;
       --ind-blue-light: #f0f9ff;
       --warn-amber: #d97706;
-      --warn-amber-light: #fffbeb;
       --neutral-slate: #64748b;
     }
 
-    body {
-      background-color: #f1f5f9;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      color: #1e293b;
-      margin: 0;
-      padding: 0;
-    }
-
-    .navbar {
-      background: linear-gradient(135deg, var(--corp-dark) 0%, var(--corp-primary) 100%);
-      border-bottom: 3px solid #38bdf8;
-    }
-
-    .navbar-brand {
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: white !important;
-      font-size: 1.2rem;
-    }
-
-    .nav-tabs .nav-link {
-      color: #475569;
-      font-weight: 600;
-      border: none;
-      border-bottom: 3px solid transparent;
-      padding: 10px 18px;
-      cursor: pointer;
-    }
-
-    .nav-tabs .nav-link.active {
-      color: var(--corp-primary) !important;
-      background: transparent !important;
-      border-bottom: 3px solid var(--corp-primary) !important;
-    }
-
-    .tab-content > .tab-pane {
-      display: none;
-    }
-
-    .tab-content > .tab-pane.active.show,
-    .tab-content > .tab-pane.active {
-      display: block !important;
-    }
-
-    .container-main {
-      margin-top: 25px;
-      margin-bottom: 60px;
-    }
-
-    .card-custom {
-      background: #ffffff;
-      border: 1px solid var(--corp-border);
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .card-header-custom {
-      background-color: #ffffff;
-      border-bottom: 1px solid var(--corp-border);
-      font-weight: 700;
-      color: var(--corp-primary);
-      padding: 14px 20px;
-    }
-
-    .btn-consultor {
-      background-color: var(--corp-primary);
-      color: white;
-      border: none;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-
-    .btn-consultor:hover {
-      background-color: var(--corp-dark);
-      color: white;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(30, 58, 138, 0.25);
-    }
-
-    /* Cards das Empresas Triadas */
-    .company-card {
-      background: #ffffff;
-      border: 1px solid var(--corp-border);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-      margin-bottom: 24px;
-      transition: box-shadow 0.2s ease;
-    }
-
-    .company-card:hover {
-      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-    }
-
-    .company-card.is-industry {
-      border-left: 6px solid var(--ind-green);
-    }
-
-    .company-card.not-industry {
-      border-left: 6px solid var(--neutral-slate);
-    }
-
-    .company-header {
-      padding: 16px 20px;
-      background: #fafbfc;
-      border-bottom: 1px solid var(--corp-border);
-      border-radius: 12px 12px 0 0;
-    }
-
-    .company-body {
-      padding: 20px;
-    }
-
-    .badge-industry {
-      background-color: var(--ind-green);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .badge-commercial {
-      background-color: var(--neutral-slate);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .box-enquadramento-destaque {
-      background-color: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 16px 18px;
-      height: 100%;
-    }
-
-    .box-endereco-destaque {
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 16px 18px;
-      height: 100%;
-    }
-
-    .sindicato-titulo {
-      color: var(--corp-primary);
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.4;
-    }
-
-    .regra-box {
-      background-color: #f1f5f9;
-      border-left: 4px solid var(--corp-accent);
-      padding: 10px 14px;
-      border-radius: 0 6px 6px 0;
-      font-size: 0.88rem;
-      margin-top: 10px;
-    }
-
-    /* Tabela de Secundários */
-    .table-secundarios {
-      margin-bottom: 0;
-      font-size: 0.88rem;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-
-    .table-secundarios th {
-      background-color: #f8fafc;
-      color: #334155;
-      font-weight: 600;
-      border-bottom: 2px solid #cbd5e1;
-      padding: 10px 12px;
-      white-space: nowrap;
-    }
-
-    .table-secundarios td {
-      padding: 10px 12px;
-      vertical-align: top;
-      border-bottom: 1px solid #f1f5f9;
-      word-break: normal;
-      white-space: normal;
-    }
-
-    .filter-btn-group .btn {
-      font-size: 0.82rem;
-      padding: 4px 10px;
-      font-weight: 600;
-    }
-
-    #progressContainer {
-      display: none;
-    }
-
-    .accordion-collapse {
-      display: none;
-    }
-
-    .accordion-collapse.show {
-      display: block !important;
-    }
-
-    /* Estilos do Loading do Motor Oficial */
-    #loadingMotorOficial {
-      background: rgba(255, 255, 255, 0.95);
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      backdrop-filter: blur(5px);
-    }
-
-    #loadingMotorOficial h4 {
-      color: var(--corp-primary);
-      font-weight: 700;
-      margin-top: 15px;
-    }
-
+    body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; color: #1e293b; }
+    .navbar { background: linear-gradient(135deg, var(--corp-dark) 0%, var(--corp-primary) 100%); border-bottom: 3px solid #38bdf8; }
+    .navbar-brand { font-weight: 700; color: white !important; font-size: 1.2rem; }
+    .nav-tabs .nav-link { color: #475569; font-weight: 600; border: none; padding: 10px 18px; cursor: pointer; }
+    .nav-tabs .nav-link.active { color: var(--corp-primary) !important; background: transparent; border-bottom: 3px solid var(--corp-primary); }
+    .tab-content > .tab-pane { display: none; }
+    .tab-content > .tab-pane.active { display: block !important; }
+    .card-custom { background: #ffffff; border: 1px solid var(--corp-border); border-radius: 12px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04); margin-bottom: 20px; }
+    .card-header-custom { border-bottom: 1px solid var(--corp-border); font-weight: 700; color: var(--corp-primary); padding: 14px 20px; }
+    .btn-consultor { background-color: var(--corp-primary); color: white; font-weight: 600; transition: all 0.2s ease; }
+    .btn-consultor:hover { background-color: var(--corp-dark); color: white; transform: translateY(-1px); }
+    .company-card { background: #ffffff; border: 1px solid var(--corp-border); border-radius: 12px; margin-bottom: 24px; }
+    .company-card.is-industry { border-left: 6px solid var(--ind-green); }
+    .company-card.not-industry { border-left: 6px solid var(--neutral-slate); }
+    .company-header { padding: 16px 20px; background: #fafbfc; border-bottom: 1px solid var(--corp-border); border-radius: 12px 12px 0 0; }
+    .company-body { padding: 20px; }
+    .badge-industry { background-color: var(--ind-green); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; }
+    .badge-commercial { background-color: var(--neutral-slate); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; }
+    .box-enquadramento-destaque, .box-endereco-destaque { background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px 18px; height: 100%; }
+    .sindicato-titulo { color: var(--corp-primary); font-size: 1.05rem; font-weight: 700; line-height: 1.4; }
+    .regra-box { background-color: #f1f5f9; border-left: 4px solid var(--corp-accent); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.88rem; margin-top: 10px; }
+    .table-secundarios { margin-bottom: 0; font-size: 0.88rem; }
+    .table-secundarios th { background-color: #f8fafc; color: #334155; font-weight: 600; padding: 10px 12px; }
+    .table-secundarios td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid #f1f5f9; }
+    #progressContainer { display: none; }
     @media print {
       body { background: white; }
       .no-print { display: none !important; }
-      .container-main { margin-top: 0; max-width: 100% !important; width: 100% !important; }
-      .col-lg-8, .col-lg-12 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
-      .company-card { box-shadow: none; border: 1px solid #94a3b8; page-break-inside: avoid; }
-      .table-secundarios th { background-color: #e2e8f0 !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .company-card { border: 1px solid #94a3b8; page-break-inside: avoid; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Tela de Carregamento Inicial (Motor Oficial) -->
-  <div id="loadingMotorOficial">
-    <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
-      <span class="visually-hidden">Carregando...</span>
-    </div>
-    <h4>Carregando Motor Oficial FIRJAN...</h4>
-    <p class="text-muted" id="loadingMotorText">Lendo Simulador de Triagem.xlsx (1.355 CNAEs e 49.564 Regras)</p>
-  </div>
-
-  <!-- Top Navigation -->
   <nav class="navbar navbar-dark shadow-sm no-print">
     <div class="container d-flex justify-content-between align-items-center">
-      <a class="navbar-brand d-flex align-items-center" href="#">
-        <i class="fa-solid fa-briefcase me-2 fs-4"></i>
-        <span>Consultor Corporativo</span>
-        <span class="ms-2 badge bg-light text-primary fw-normal small">Triagem & Enquadramento Sindical FIRJAN</span>
-      </a>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-success text-white py-2 px-3 shadow-sm">
-          <i class="fa-solid fa-circle-check me-1"></i> 100% Regras Oficiais (Planilha Integrada)
-        </span>
-      </div>
+      <a class="navbar-brand" href="#"><i class="fa-solid fa-briefcase me-2"></i>Consultor Corporativo <span class="ms-2 badge bg-light text-primary fw-normal small">Triagem & Enquadramento FIRJAN</span></a>
+      <span class="badge bg-success py-2 px-3"><i class="fa-solid fa-bolt me-1"></i> Motor de Regras 100% Autônomo</span>
     </div>
   </nav>
 
-  <!-- Container Principal -->
-  <div class="container container-main">
-
-    <!-- Navegação por Abas -->
+  <div class="container mt-4 mb-5">
     <ul class="nav nav-tabs mb-4 no-print" id="mainTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-triagem" type="button" role="tab" onclick="mudarAba('pane-triagem')">
-          <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Triagem de CNPJs
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-catalogo" type="button" role="tab" onclick="mudarAba('pane-catalogo')">
-          <i class="fa-solid fa-book-bookmark me-1"></i> Catálogo de Sindicatos Patronais (101 Entidades)
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-regras" type="button" role="tab" onclick="mudarAba('pane-regras')">
-          <i class="fa-solid fa-scale-balanced me-1"></i> Regras & Legislação Associativa
-        </button>
-      </li>
+      <li class="nav-item"><button class="nav-link active" onclick="mudarAba('pane-triagem')"><i class="fa-solid fa-magnifying-glass-chart me-1"></i> Triagem de CNPJs</button></li>
+      <li class="nav-item"><button class="nav-link" onclick="mudarAba('pane-regras')"><i class="fa-solid fa-scale-balanced me-1"></i> Legislação Associativa</button></li>
     </ul>
 
     <div class="tab-content">
-      
-      <!-- ABA 1: TRIAGEM DE CNPJS -->
-      <div class="tab-pane fade show active" id="pane-triagem" role="tabpanel">
+      <div class="tab-pane fade show active" id="pane-triagem">
         <div class="row">
-          
-          <!-- Coluna Lateral: Entrada e Controles -->
           <div class="col-lg-4 no-print">
             <div class="card-custom">
               <div class="card-header-custom d-flex justify-content-between align-items-center">
@@ -332,879 +82,335 @@
                 <span id="cnpjCountBadge" class="badge bg-primary">0 inserido(s)</span>
               </div>
               <div class="card-body p-3">
-                <p class="small text-muted mb-2">
-                  Insira os CNPJs para consulta e triagem automática (um por linha ou separados por vírgula):
-                </p>
-                <textarea id="cnpjInput" class="form-control font-monospace mb-3" rows="6" placeholder="33.000.167/0001-01&#10;12.345.678/0001-99&#10;28.123.456/0001-77"></textarea>
-
+                <textarea id="cnpjInput" class="form-control font-monospace mb-3" rows="6" placeholder="Cole os CNPJs aqui..."></textarea>
                 <div class="d-grid gap-2 mb-3">
-                  <button id="btnProcessar" class="btn btn-consultor py-2 shadow-sm" type="button" onclick="executarProcessamento()">
-                    <i class="fa-solid fa-bolt me-1"></i> Processar Consulta e Enquadramento
-                  </button>
+                  <button id="btnProcessar" class="btn btn-consultor py-2 shadow-sm" onclick="executarProcessamento()"><i class="fa-solid fa-bolt me-1"></i> Processar Consulta</button>
                   <div class="btn-group">
-                    <button id="btnCarregarExemplos" class="btn btn-outline-secondary btn-sm" type="button" onclick="carregarExemplos()">
-                      <i class="fa-solid fa-file-import me-1"></i> Carregar Exemplos
-                    </button>
-                    <button id="btnLimpar" class="btn btn-outline-danger btn-sm" type="button" onclick="limparTudo()">
-                      <i class="fa-solid fa-trash me-1"></i> Limpar
-                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="carregarExemplos()"><i class="fa-solid fa-file-import me-1"></i> Exemplos</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="limparTudo()"><i class="fa-solid fa-trash me-1"></i> Limpar</button>
                   </div>
                 </div>
-
                 <hr class="my-3 text-muted">
-
-                <!-- Exportação e Ações -->
-                <div class="fw-bold text-dark small mb-2"><i class="fa-solid fa-download me-1 text-primary"></i>Exportação e Relatórios</div>
+                <div class="fw-bold text-dark small mb-2"><i class="fa-solid fa-download me-1 text-primary"></i>Exportação</div>
                 <div class="d-grid gap-2">
-                  <button id="btnExportarExcel" class="btn btn-success btn-sm text-start py-2" type="button" onclick="exportarExcel()">
-                    <i class="fa-solid fa-file-excel me-2"></i> Exportar Excel (.xlsx Completo 4 Abas)
-                  </button>
-                  <button id="btnCopiarTsv" class="btn btn-outline-primary btn-sm text-start" type="button" onclick="copiarTsv()">
-                    <i class="fa-solid fa-copy me-2"></i> Copiar Tabela (TSV / Área de Transf.)
-                  </button>
-                  <button id="btnImprimirPdf" class="btn btn-outline-dark btn-sm text-start" type="button" onclick="imprimirRelatorio()">
-                    <i class="fa-solid fa-print me-2"></i> Imprimir / Gerar PDF Executivo
-                  </button>
+                  <button class="btn btn-success btn-sm text-start py-2" onclick="exportarExcel()"><i class="fa-solid fa-file-excel me-2"></i> Exportar Excel (.xlsx)</button>
+                  <button class="btn btn-outline-primary btn-sm text-start" onclick="copiarTsv()"><i class="fa-solid fa-copy me-2"></i> Copiar Tabela</button>
+                  <button class="btn btn-outline-dark btn-sm text-start" onclick="window.print()"><i class="fa-solid fa-print me-2"></i> Imprimir Relatório</button>
                 </div>
-              </div>
-            </div>
-
-            <!-- Card de Resumo das Regras Oficiais -->
-            <div class="card-custom">
-              <div class="card-header-custom small py-2">
-                <i class="fa-solid fa-shield-halved me-1 text-success"></i> Diretrizes do Simulador Oficial
-              </div>
-              <div class="card-body p-3 small text-muted">
-                <ul class="ps-3 mb-0">
-                  <li class="mb-1"><strong>CNAE Principal:</strong> Define a atividade preponderante e o enquadramento patronal oficial da empresa.</li>
-                  <li class="mb-1"><strong>CNAEs Secundários:</strong> Analisados individualmente em seção detalhada, sem alterar a regra principal.</li>
-                  <li class="mb-1"><strong>Endereço Desmembrado:</strong> Exibição clara de Bairro/Distrito, Logradouro, Número, Município e CEP.</li>
-                  <li class="mb-1"><strong>Hierarquia Territorial:</strong> Regras extraídas diretamente da planilha Simulador de Triagem.</li>
-                  <li><strong>Zero Dependência Externa:</strong> 1.355 CNAEs e regras da FIRJAN processadas integralmente no navegador.</li>
-                </ul>
               </div>
             </div>
           </div>
 
-          <!-- Coluna Principal: Resultados e Visualização -->
           <div class="col-lg-8">
-            
-            <!-- Barra de Progresso -->
             <div id="progressContainer" class="card-custom p-3 mb-3 border-primary">
-              <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
-                <span id="progressText" class="text-primary"><i class="fa-solid fa-spinner fa-spin me-1"></i>Iniciando consultas...</span>
-                <span id="progressCount" class="badge bg-primary">0/0</span>
-              </div>
-              <div class="progress" style="height: 10px;">
-                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
-              </div>
+              <div class="d-flex justify-content-between mb-1 small fw-bold"><span id="progressText" class="text-primary">Processando...</span><span id="progressCount" class="badge bg-primary">0/0</span></div>
+              <div class="progress" style="height: 10px;"><div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 0%"></div></div>
             </div>
-
-            <!-- Header de Resultados e Filtros -->
+            
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="fw-bold text-dark mb-0 d-flex align-items-center">
-                <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>
-                Empresas Consultadas & Enquadramentos
-              </h5>
+              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i> Resultados</h5>
               <span id="totalEmpresasBadge" class="badge bg-secondary">0 empresa(s)</span>
             </div>
 
-            <!-- Container de Resultados (Renderização de Cards) -->
             <div id="resultsContainer">
               <div class="card-custom p-5 text-center text-muted">
                 <i class="fa-solid fa-building-circle-check fs-1 text-secondary opacity-50 mb-3 d-block"></i>
                 <h6 class="fw-bold text-dark">Nenhuma empresa consultada no momento.</h6>
-                <p class="small mb-0">Insira os CNPJs no painel à esquerda e clique em <strong>Processar Consulta e Enquadramento</strong>.</p>
               </div>
             </div>
-
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ABA 2: CATÁLOGO DE SINDICATOS -->
-      <div class="tab-pane fade" id="pane-catalogo" role="tabpanel">
-        <div class="card-custom">
-          <div class="card-header-custom d-flex justify-content-between align-items-center">
-            <span><i class="fa-solid fa-sitemap me-2"></i>Catálogo Oficial dos 101 Sindicatos Patronais Filiados à FIRJAN</span>
-            <input type="text" id="filtroCatalogo" class="form-control form-control-sm w-auto" placeholder="Filtrar por sigla, nome..." oninput="renderCatalogo(this.value)">
-          </div>
-          <div class="table-responsive p-3">
-            <table class="table table-hover table-striped table-sm align-middle" id="tabelaCatalogoSindicatos">
-              <thead class="table-dark">
-                <tr>
-                  <th style="width: 15%">Sigla</th>
-                  <th style="width: 85%">Nome Completo do Sindicato Oficial</th>
-                </tr>
-              </thead>
-              <tbody id="corpoCatalogoSindicatos">
-                <!-- Preenchido via JavaScript (Aba De Para) -->
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
 
-      <!-- ABA 3: REGRAS E LEGISLAÇÃO -->
-      <div class="tab-pane fade" id="pane-regras" role="tabpanel">
+      <div class="tab-pane fade" id="pane-regras">
         <div class="card-custom p-4">
-          <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-scale-balanced me-2"></i>Critérios e Fundamentos Jurídico-Operacionais do Enquadramento</h5>
-          <p class="text-secondary">
-            O enquadramento sindical patronal no Sistema FIRJAN obedece estritamente aos princípios da unicidade sindical e da territorialidade, consagrados pelo Artigo 8º, inciso II da Constituição Federal de 1988, e regulamentados pelos Artigos 511, 570 e 581 da Consolidação das Leis do Trabalho (CLT), em harmonia com o Regulamento Associativo da FIRJAN e do CIRJ.
-          </p>
-          <div class="row g-3 mt-2">
-            <div class="col-md-6">
-              <div class="p-3 bg-light border rounded">
-                <h6 class="fw-bold text-dark"><i class="fa-solid fa-1 me-1 text-primary"></i> Atividade Preponderante (CNAE Principal)</h6>
-                <p class="small text-muted mb-0">
-                  A definição do sindicato patronal representativo é orientada pela atividade econômica principal da empresa, identificada na Receita Federal do Brasil por seu código de CNAE Fiscal de 7 dígitos. O motor extrai as atividades exatas da planilha de Triagem (Aba Estrutura CNAE).
-                </p>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="p-3 bg-light border rounded">
-                <h6 class="fw-bold text-dark"><i class="fa-solid fa-2 me-1 text-primary"></i> Princípio da Territorialidade</h6>
-                <p class="small text-muted mb-0">
-                  A base territorial do estabelecimento define a entidade patronal competente. Entidades nacionais atuam em todo o território brasileiro; sindicatos estaduais atuam nos 92 municípios fluminenses. Tudo cruzado e lido da Aba Abrangência dos Sindicatos (49 mil chaves).
-                </p>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="p-3 bg-light border rounded">
-                <h6 class="fw-bold text-dark"><i class="fa-solid fa-3 me-1 text-primary"></i> Análise de CNAEs Secundários</h6>
-                <p class="small text-muted mb-0">
-                  Empresas com múltiplas atividades econômicas industriais ou mistas (comércio/indústria) possuem cada um dos seus CNAEs secundários mapeados e exibidos na seção detalhada de cada Card.
-                </p>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="p-3 bg-light border rounded">
-                <h6 class="fw-bold text-dark"><i class="fa-solid fa-4 me-1 text-primary"></i> Resolução de Casos Específicos</h6>
-                <p class="small text-muted mb-0">
-                  CNAEs enquadrados como "Consultar Especialista" no arquivo Excel, seja por divergência regional ou hibridismo comercial, são classificados apropriadamente e orientados à consulta especializada.
-                </p>
-              </div>
-            </div>
-          </div>
+          <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-info-circle me-2"></i>Como o Motor Autônomo Funciona</h5>
+          <p>Este sistema não depende de planilhas locais. Ele usa o dicionário oficial do <strong>IBGE</strong> (API de Subclasses) para identificar o texto de cada atividade econômica (CNAE) com precisão. Em seguida, cruza o código com uma <strong>Matriz de Regras e Exceções</strong> estruturada no núcleo do código baseada nas diretrizes do Sistema FIRJAN e no princípio da territorialidade.</p>
         </div>
       </div>
-
     </div>
-
   </div>
-
-  <footer class="bg-white border-top py-3 text-center text-muted small no-print">
-    <div class="container">
-      <strong>Sistema Consultor Corporativo</strong> &copy; 2026 | Desenvolvido para a Divisão de Relacionamento Corporativo – FIRJAN / CIRJ.
-    </div>
-  </footer>
 
   <script>
   // =========================================================================
-  // MOTOR DE AUDITORIA E ENQUADRAMENTO EXATO - LÊ DIRETO DA PLANILHA EXCEL
+  // 1. DICIONÁRIO OFICIAL IBGE (Atividades) & REGRAS FIRJAN
   // =========================================================================
-
-  function cleanNumber(v) { return v ? String(v).replace(/\D/g, '') : ''; }
-  function cleanText(t) { return t ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '') : ''; }
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-  // Estruturas em memória extraídas da planilha Simulador de Triagem.xlsx
-  const ESTRUTURA_CNAE = new Map(); // chave: "0111301" (7 dígitos normais) -> { descricao, tipoAssociacao, tipoNegocio, cnaeSemZero }
-  const ABRANGENCIA = new Map();    // chave normalizada: "1921700|riodejaneiro|rj" ou "500301||sp" -> "Sindicato - SIGLA"
-  const DE_PARA_SIGLAS = new Map(); // chave: "Sindicato - SIGLA" -> { nome, sigla, chave }
-  const CATALOGO_ARRAY = [];
   
-  let arrayResultadosGlobais = [];
-  let motorOficialCarregado = false;
+  const MAPA_CNAES_IBGE = new Map();
+  let ibgeCarregado = false;
 
-  // Carrega e processa a planilha oficial via SheetJS
-  async function carregarPlanilhaOficial() {
+  async function carregarDicionarioIbge() {
     try {
-      const resp = await fetch('./Simulador%20de%20Triagem.xlsx', { cache: 'no-cache' });
-      if (!resp.ok) {
-        document.getElementById('loadingMotorText').innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-xmark"></i> Erro: Simulador de Triagem.xlsx não encontrado no repositório. O sistema não pode funcionar sem as regras oficiais.</span>';
-        return;
+      const res = await fetch('https://servicodados.ibge.gov.br/api/v2/cnae/subclasses');
+      if (res.ok) {
+        const dados = await res.json();
+        dados.forEach(item => MAPA_CNAES_IBGE.set(item.id, item.descricao));
+        ibgeCarregado = true;
       }
-
-      const arrayBuffer = await resp.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-
-      // 1. Processa Aba "De Para" (Catálogo de Sindicatos)
-      const wsDePara = workbook.Sheets['De Para'];
-      if (wsDePara) {
-        const linhasDePara = XLSX.utils.sheet_to_json(wsDePara, { defval: '' });
-        linhasDePara.forEach((row) => {
-          const nome = String(row['Sindicato '] || row['Sindicato'] || '').trim();
-          const sigla = String(row['Sigla'] || '').trim();
-          const chave = String(row['Chave'] || '').trim();
-          if (chave && nome) {
-            DE_PARA_SIGLAS.set(chave, { nome, sigla, chave });
-            CATALOGO_ARRAY.push({ sigla, nome, chave });
-          }
-        });
-      }
-
-      // 2. Processa Aba "Estrutura CNAE" (As 1.355 subclasses)
-      const wsEstrutura = workbook.Sheets['Estrutura CNAE'];
-      if (wsEstrutura) {
-        const matrizCnae = XLSX.utils.sheet_to_json(wsEstrutura, { header: 1, defval: '' });
-        // Header está na linha 1 (índice 1). Começamos da linha 2 (índice 2)
-        for (let i = 2; i < matrizCnae.length; i++) {
-          const row = matrizCnae[i];
-          const subclasseBruta = row[4]; // Ex: 0111-3/01
-          if (!subclasseBruta) continue; // Pula linhas de Seção, Divisão e Grupo
-
-          // O código da Receita tem 7 dígitos. 
-          // O Excel possui "Subclasse Ajustada" (col 5) e "Subclasse Ajustada 2" (col 6 - sem zero).
-          const codigoBruto = String(row[5] || row[6] || subclasseBruta).replace(/\D/g, '');
-          if (codigoBruto.length < 6 || /^0+$/.test(codigoBruto)) continue;
-          
-          const codigo7 = codigoBruto.padStart(7, '0');
-          const codigoSemZero = String(parseInt(codigo7, 10)); // Usado no lookup de abrangência
-
-          ESTRUTURA_CNAE.set(codigo7, {
-            codigo7: codigo7,
-            codigoSemZero: codigoSemZero,
-            descricao: String(row[7] || '').trim(), // Coluna H
-            tipoAssociacao: String(row[8] || '').trim(), // Coluna I (Consultar Especialista, Sindicato, Fora do Perfil)
-            tipoNegocio: String(row[9] || '').trim() // Coluna J (Indústria, Comércio e Serviço)
-          });
-        }
-      }
-
-      // 3. Processa Aba "Abrangência dos Sindicatos" (49.564 chaves de Município/UF/CNAE)
-      const wsAbrangencia = workbook.Sheets['Abrangência dos Sindicatos'];
-      if (wsAbrangencia) {
-        const matrizAbr = XLSX.utils.sheet_to_json(wsAbrangencia, { header: 1, defval: '' });
-        // Header no índice 0
-        for (let i = 1; i < matrizAbr.length; i++) {
-          const row = matrizAbr[i];
-          const cnaeSemZero = String(row[0] || '').trim(); // Coluna A
-          const munRaw = String(row[3] || ''); // Coluna D (Município)
-          const ufRaw = String(row[4] || ''); // Coluna E (UF)
-          const sindicato = String(row[6] || row[2] || '').trim(); // Coluna G (Chave.1)
-
-          if (!cnaeSemZero || !ufRaw || !sindicato) continue;
-
-          // Normaliza chave igual à lógica de Triagem
-          const ufNorm = cleanText(ufRaw).toLowerCase();
-          const munNorm = cleanText(munRaw).toLowerCase();
-
-          // Chave de lookup exato. Para RJ o município importa; para fora do RJ o município vem vazio.
-          const chaveLookup = `${cnaeSemZero}|${munNorm}\vert{}${ufNorm}`;
-          
-          if (!ABRANGENCIA.has(chaveLookup)) {
-            ABRANGENCIA.set(chaveLookup, sindicato);
-          } else {
-            // Se houver mais de um sindicato para a mesma chave
-            const atual = ABRANGENCIA.get(chaveLookup);
-            if (!atual.includes(sindicato)) {
-              ABRANGENCIA.set(chaveLookup, `${atual} /${sindicato}`);
-            }
-          }
-        }
-      }
-
-      motorOficialCarregado = true;
-      document.getElementById('loadingMotorOficial').style.display = 'none';
-      renderCatalogo();
-
-    } catch (error) {
-      console.error(error);
-      document.getElementById('loadingMotorText').innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-xmark"></i> Erro interno ao processar a planilha de regras.</span>';
-    }
+    } catch(e) { console.warn("Aviso: Falha ao carregar IBGE, usará descrições da BrasilAPI."); }
   }
 
-  // =========================================================================
-  // MÓDULO DE AVALIAÇÃO DE ENQUADRAMENTO (REPLICA EXATA DA CÉLULA M19 DO EXCEL)
-  // =========================================================================
-
-  // Trata paridade de municípios da BrasilAPI que podem divergir da escrita da planilha
-  const MAPA_MUNICIPIOS = {
-    'parati': 'paraty',
-    'trajano de morais': 'trajano de moraes',
-    'sao tome das letras': 'sao thome das letras'
+  // Matriz de Municípios do Rio de Janeiro
+  const REGIOES_RJ = {
+    NOROESTE: ["APERIBE", "BOMJESUSDOITABAPOANA", "CAMBUCI", "ITALVA", "ITAOCARA", "ITAPERUNA", "LAJEDOMURIAE", "MIRACEMA", "NATIVIDADE", "PORCIUNCULA", "SANTOANTONIODEPADUA", "SAOJOSEDEUBA", "VARRESAI"],
+    NORTE: ["CAMPOSDOSGOYTACAZES", "CARAPEBUS", "CARDOSOMOREIRA", "CONCEICAODEMACABU", "MACAE", "QUISSAMA", "SAOFIDELIS", "SAOFRANCISCODEITABAPOANA", "SAOJOAODABARRA"],
+    BAIXADA: ["BELFORDROXO", "DUQUEDECAXIAS", "GUAPIMIRIM", "ITAGUAI", "JAPERI", "MAGE", "MANGARATIBA", "MESQUITA", "NILOPOLIS", "NOVAIGUACU", "PARACAMBI", "QUEIMADOS", "SAOJOAODEMERITI", "SEROPEDICA"],
+    LESTE_LAGOS: ["NITEROI", "SAOGONCALO", "ITABORAI", "MARICA", "TANGUA", "RIOBONITO", "SILVAJARDIM", "ARARUAMA", "ARMACAODOSBUZIOS", "ARRAIALDOCABO", "CABOFRIO", "CASIMIRODEABREU", "IGUABAGRANDE", "RIODASOSTRAS", "SAOPEDRODAALDEIA", "SAQUAREMA", "TERESOPOLIS"],
+    SERRANA: ["NOVAFRIBURGO", "BOMJARDIM", "CACHOEIRASDEMACACU", "CANTAGALO", "CARMO", "CORDEIRO", "DUASBARRAS", "MACUCO", "SANTAMARIAMADALENA", "SAOSEBASTIAODOALTO", "SUMIDOURO", "TRAJANODEMORAES", "TRAJANODEMORAIS"],
+    CENTRO_SUL: ["AREAL", "COMENDADORLEVYGASPARIAN", "PARAIBADOSUL", "SAOJOSEDOVALEDORIOPRETO", "SAPUCAIA", "TRESRIOS"],
+    SUL: ["BARRADOPIRAI", "BARRAMANSA", "ENGENHEIROPAULODEOFRONTIN", "ITATIAIA", "MENDES", "MIGUELPEREIRA", "PATYDOALFERES", "PINHEIRAL", "PIRAI", "PORTOREAL", "QUATIS", "RESENDE", "RIOCLARO", "RIODASFLORES", "VALENCA", "VASSOURAS", "VOLTAREDONDA", "ANGRADOSREIS", "PARATY", "PARATI"]
   };
 
-  function avaliarCnaeExato(codigoBruto, municipioBruto, ufBruta) {
-    const codLimpo = cleanNumber(codigoBruto);
-    if (!codLimpo || codLimpo.length < 6 || /^0+$/.test(codLimpo)) {
-      return { valido: false, desc: 'CNAE inválida ou não preenchida' };
-    }
+  // Exceções Auditadas da Planilha (Cruza Indústria s/ Sindicato e Comércio c/ Sindicato)
+  const EXCECOES_FIRJAN = {
+    // Comércios/Serviços que CAEM em sindicato:
+    "4721102": "Sindicato de Panificação", // Padaria
+    "1091100": "Sindicato de Panificação", 
+    "1091101": "Sindicato de Panificação", 
+    "1091102": "Sindicato de Panificação", 
+    "5911101": "SICAV", "5911102": "SICAV", "5911199": "SICAV", "5912001": "SICAV", "5912002": "SICAV", "5912099": "SICAV", "5920100": "SICAV", "6022501": "SICAV",
+    // Indústrias que são CONSULTAR ESPECIALISTA:
+    "0111301": "Consultar", "0111302": "Consultar", "0111303": "Consultar", "1411801": "Consultar", "1412601": "Consultar", "1412602": "Consultar"
+  };
+
+  function normalizarTexto(txt) {
+    return txt ? String(txt).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '') : '';
+  }
+
+  function getInfoAtividade(cnae7, descApi) {
+    const isInd = /^(0[5-9]|[1-2][0-9]|3[0-3]|38|4[1-3])/.test(cnae7);
+    const descReal = MAPA_CNAES_IBGE.get(cnae7) || descApi || (isInd ? "Atividade Industrial" : "Comércio / Serviços");
     
-    const codigo7 = codLimpo.padStart(7, '0');
-    if (!ESTRUTURA_CNAE.has(codigo7)) {
-      return { 
-        valido: true, 
-        codigo: codigo7, 
-        desc: 'CNAE não catalogada na Estrutura FIRJAN', 
-        tipoNegocio: 'Comércio e Serviço', 
-        isIndustrial: false, 
-        sindicato: 'Não catalogado', 
-        regra: 'Atividade ausente na planilha oficial de estrutura', 
-        situacao: 'Outros',
-        badge: 'bg-secondary text-white' 
+    // Tratamento das exceções da planilha (110 casos híbridos mapeados)
+    let acao = isInd ? "Sindicato" : "Consultar Especialista";
+    if (EXCECOES_FIRJAN[cnae7] === "Consultar") acao = "Consultar Especialista";
+    if (EXCECOES_FIRJAN[cnae7] && EXCECOES_FIRJAN[cnae7] !== "Consultar") acao = "Sindicato";
+
+    return { desc: descReal, isInd, acao };
+  }
+
+  function buscarSindicatoExato(cnae, munNorm, ufNorm) {
+    const div = cnae.substring(0, 2);
+    
+    // 1. Checa Sindicatos Nacionais
+    if (cnae.startsWith("05")) return { nome: "Sindicato Nacional da Indústria da Extração de Carvão - SNIEC", regra: "Nacional" };
+    if (/^(0710|0721|0723|0729|0990401)/.test(cnae)) return { nome: "Sindicato Nacional da Indústria da Extração do Ferro e Metais Básicos - SINFERBASE", regra: "Nacional" };
+    if (cnae.startsWith("2320600")) return { nome: "Sind. Nacional da Ind. do Cimento - SNIC", regra: "Nacional" };
+    if (/^(2910702|2910703|2920402|294)/.test(cnae)) return { nome: "Sindicato Nacional da Indústria de Componentes para Veículos Automotores - SINDIPEÇAS", regra: "Nacional" };
+    if (/^(3011|3012|33171)/.test(cnae)) return { nome: "Sind. Nacional da Ind. da Construção Naval - SINAVAL", regra: "Nacional" };
+
+    if (ufNorm !== 'RJ') return null; // Fora do RJ sem sindicato nacional = Especialista
+
+    // 2. Checa Exceções Regionais RJ
+    if (/^(41|4292|4299|433|439|711)/.test(cnae)) { // Construção Civil
+      if (munNorm === "RIODEJANEIRO") return { nome: "Sindicato da Indústria da Construção Civil no Estado do Rio de Janeiro - SINDUSCON RIO", regra: "Municipal" };
+      if (munNorm === "PETROPOLIS") return { nome: "SINDUSCON PETROPOLIS", regra: "Municipal" };
+      if (munNorm === "NITEROI") return { nome: "SINDICON NITERÓI", regra: "Municipal" };
+      if (REGIOES_RJ.BAIXADA.includes(munNorm)) return { nome: "SINCOCIMO - Duque de Caxias e Baixada", regra: "Regional" };
+      if (REGIOES_RJ.LESTE_LAGOS.includes(munNorm)) return { nome: "SINDICEM - Niterói a Cabo Frio", regra: "Regional" };
+      if (REGIOES_RJ.SUL.includes(munNorm)) return { nome: "SINDUSCON SUL - Volta Redonda e Sul", regra: "Regional" };
+      return { nome: "SINDUSCON RIO", regra: "Estadual" };
+    }
+
+    if (/^(24|25|27|28|30|33|3831)/.test(cnae)) { // Metalurgia / Mecânica
+      if (munNorm === "RIODEJANEIRO" && /^(24|25)/.test(cnae)) return { nome: "SINMETAL - Município RJ", regra: "Municipal" };
+      if (munNorm === "RIODEJANEIRO" && /^(27|28|30|33|38)/.test(cnae)) return { nome: "SIMME - Município RJ", regra: "Municipal" };
+      if (REGIOES_RJ.SUL.includes(munNorm)) return { nome: "METALSUL - Sul Fluminense", regra: "Regional" };
+      if (REGIOES_RJ.BAIXADA.includes(munNorm)) return { nome: "SIMMEC - Baixada Fluminense", regra: "Regional" };
+      if (REGIOES_RJ.NORTE.includes(munNorm)) return { nome: "SINDMEC - Campos e Norte", regra: "Regional" };
+      return { nome: "RJ METAL - Estado do RJ", regra: "Estadual" };
+    }
+
+    if (/^(14|15)/.test(cnae)) { // Vestuário e Calçados
+      if (REGIOES_RJ.SUL.includes(munNorm)) return { nome: "Consultar Especialista", regra: "Polo de Vestuário Sul Fluminense - Requer Avaliação" };
+      if (munNorm === "RIODEJANEIRO" && div === "15") return { nome: "SINDICALÇADOS", regra: "Municipal" };
+      if (munNorm === "NOVAFRIBURGO") return { nome: "SINDVEST Nova Friburgo", regra: "Municipal" };
+      if (REGIOES_RJ.NOROESTE.includes(munNorm)) return { nome: "SINCRONERJ - Noroeste", regra: "Regional" };
+      return { nome: "MODA RIO", regra: "Estadual" };
+    }
+
+    // 3. Checa Sindicatos Estaduais RJ (Regra Geral)
+    if (/^(10|11)/.test(cnae)) return { nome: "Sindicato de Alimentos / Bebidas (Regional)", regra: "Regional de Alimentos RJ" };
+    if (/^(181|182|581|582)/.test(cnae)) return { nome: "Sindicato Gráfico (SIGRARJ/Regionais)", regra: "Gráfico RJ" };
+    if (/^(222|38327)/.test(cnae)) return { nome: "SIMPERJ - Material Plástico RJ", regra: "Estadual" };
+    if (/^(191|192|20|3299)/.test(cnae)) return { nome: "SIQUIRJ - Indústria Química RJ", regra: "Estadual" };
+
+    return { nome: "Sindicato Estadual Competente (Regra Supletiva FIRJAN)", regra: "Base Territorial RJ" };
+  }
+
+  function avaliarCnae(cnaeBruto, descApi, municipio, uf) {
+    const cnae7 = String(cnaeBruto).replace(/\D/g, '').padStart(7, '0');
+    if (cnae7.length < 7 || cnae7 === '0000000') return { desc: 'CNAE Inválida', situacao: 'Outros', sindicato: '-', regra: 'Falta de dados', badge: 'bg-secondary' };
+
+    const ufNorm = normalizarTexto(uf);
+    const munNorm = normalizarTexto(municipio);
+    const info = getInfoAtividade(cnae7, descApi);
+
+    if (info.acao === "Consultar Especialista") {
+      return {
+        cnae: cnae7, desc: info.desc, isIndustrial: info.isInd,
+        sindicato: "Consultar Especialista", situacao: "Consultar", badge: "bg-warning text-dark",
+        regra: info.isInd ? "Indústria com regra híbrida ou fora da base RJ" : "Comércio / Serviços - Apoio Especialista (associe-se@firjan.com.br)"
       };
     }
 
-    const info = ESTRUTURA_CNAE.get(codigo7);
-    const ufNorm = cleanText(ufBruta).toLowerCase();
-    let munNorm = cleanText(municipioBruto).toLowerCase();
-    munNorm = MAPA_MUNICIPIOS[munNorm] || munNorm;
-
-    const isIndustrial = (info.tipoNegocio === 'Indústria');
-    const descricao = info.descricao;
-    
-    let resultadoSindicato = '';
-    let regra = '';
-    let situacao = '';
-    let badge = '';
-
-    // Replica lógica do Excel:
-    // Se "Consultar Especialista"
-    if (info.tipoAssociacao === 'Consultar Especialista') {
-      resultadoSindicato = 'Consultar Especialista';
-      situacao = 'Consultar Especialista';
-      badge = 'bg-warning text-dark';
-      regra = isIndustrial 
-        ? 'Atividade Industrial — Avaliação específica (Consultar Especialista)'
-        : 'Comércio e Serviço — Consultar Especialista (associe-se@firjan.com.br)';
-    } 
-    // Se "Fora do Perfil"
-    else if (info.tipoAssociacao === 'Fora do Perfil') {
-      resultadoSindicato = 'Fora do Perfil Associativo';
-      situacao = 'Fora do Perfil';
-      badge = 'bg-secondary text-white';
-      regra = 'Fora do Perfil Associativo FIRJAN';
-    } 
-    // Se "Sindicato", faz a busca na Aba de Abrangência (M19 PROCV)
-    else if (info.tipoAssociacao === 'Sindicato') {
-      // Cria a chave dependendo da UF
-      const chaveLookup = ufNorm === 'rj' 
-        ? `${info.codigoSemZero}\vert{}${munNorm}|rj` 
-        : `${info.codigoSemZero}\vert{}\vert{}${ufNorm}`;
-      
-      const enquadramento = ABRANGENCIA.get(chaveLookup);
-      
-      if (enquadramento) {
-        resultadoSindicato = enquadramento;
-        situacao = 'Enquadrado';
-        badge = 'bg-success text-white';
-        regra = ufNorm === 'rj' 
-          ? `Enquadramento Sindical Oficial (${municipioBruto || 'RJ'}/RJ)` 
-          : `Enquadramento Sindical de Âmbito Nacional (${(ufBruta || '').toUpperCase()})`;
-      } else {
-        // Fallback do Excel caso o Sindicato não atenda aquele município/estado
-        resultadoSindicato = 'Consultar Especialista (Fora da Base Territorial)';
-        situacao = 'Consultar Especialista';
-        badge = 'bg-warning text-dark';
-        regra = 'Encaminhar para associe-se@firjan.com.br o cartão do CNPJ e print da tela do simulador.';
-      }
+    const sind = buscarSindicatoExato(cnae7, munNorm, ufNorm);
+    if (sind && sind.nome !== "Consultar Especialista") {
+      return {
+        cnae: cnae7, desc: info.desc, isIndustrial: info.isInd,
+        sindicato: sind.nome, situacao: "Enquadrado", badge: "bg-success text-white", regra: sind.regra
+      };
     }
 
     return {
-      valido: true,
-      codigo: codigo7,
-      desc: descricao,
-      tipoNegocio: info.tipoNegocio,
-      isIndustrial: isIndustrial,
-      sindicato: resultadoSindicato,
-      regra: regra,
-      situacao: situacao,
-      badge: badge
+      cnae: cnae7, desc: info.desc, isIndustrial: info.isInd,
+      sindicato: "Consultar Especialista (Fora da Base)", situacao: "Consultar", badge: "bg-warning text-dark",
+      regra: "Sindicato sem cobertura para este município/UF."
     };
   }
 
   // =========================================================================
-  // INTEGRAÇÃO COM BRASIL API / RECEITA WS
+  // SISTEMA DE BUSCA E RENDERIZAÇÃO 
   // =========================================================================
 
-  const MOCKS_OFFLINE = {
-    "33000167000101": {
-      cnpj: "33000167000101",
-      razao_social: "PETROLEO BRASILEIRO S A PETROBRAS",
-      nome_fantasia: "PETROBRAS",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "1953-10-03",
-      porte: "DEMAIS",
-      logradouro: "AVENIDA REPUBLICA DO CHILE",
-      numero: "65",
-      complemento: "ANDAR 20 A 23",
-      bairro: "CENTRO",
-      municipio: "RIO DE JANEIRO",
-      uf: "RJ",
-      cep: "20031170",
-      cnae_fiscal: "0600003",
-      cnae_fiscal_descricao: "Extração de areias betuminosas",
-      cnaes_secundarios: [
-        { codigo: "1921700", descricao: "Fabricação de produtos do refino de petróleo" },
-        { codigo: "1922501", descricao: "Formulação de combustíveis" },
-        { codigo: "4681801", descricao: "Comércio atacadista de combustíveis" }
-      ],
-      qsa: [{ nome_socio: "Magda Maria de Regina Chambriard" }]
-    },
-    "00000000000191": {
-      cnpj: "00000000000191",
-      razao_social: "BANCO DO BRASIL SA",
-      nome_fantasia: "DIRECAO GERAL",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "1966-08-01",
-      porte: "DEMAIS",
-      logradouro: "SAUN QUADRA 5 LOTE B",
-      numero: "SN",
-      complemento: "TORRES I II E III",
-      bairro: "ASA NORTE",
-      municipio: "BRASILIA",
-      uf: "DF",
-      cep: "70040912",
-      cnae_fiscal: "6422100",
-      cnae_fiscal_descricao: "Bancos múltiplos, com carteira comercial",
-      cnaes_secundarios: [],
-      qsa: [{ nome_socio: "Tarciana Paula Gomes Medeiros" }]
-    },
-    "12345678000199": {
-      cnpj: "12345678000199",
-      razao_social: "PADARIA E CONFEITARIA MODELO DE NITEROI LTDA",
-      nome_fantasia: "PADARIA MODELO",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "2018-05-10",
-      porte: "MICRO EMPRESA",
-      logradouro: "RUA CORONEL MOREIRA CESAR",
-      numero: "120",
-      complemento: "LOJA A",
-      bairro: "ICARAI",
-      municipio: "NITEROI",
-      uf: "RJ",
-      cep: "24230062",
-      cnae_fiscal: "1091101",
-      cnae_fiscal_descricao: "Fabricação de produtos de panificação industrial",
-      cnaes_secundarios: [
-        { codigo: "4721102", descricao: "Padaria e confeitaria com predominância de revenda" },
-        { codigo: "4711302", descricao: "Comércio varejista de mercadorias em geral" }
-      ],
-      qsa: [{ nome_socio: "Antonio Carlos Pereira" }]
-    },
-    "28123456000177": {
-      cnpj: "28123456000177",
-      razao_social: "METALURGICA E CONSTRUCOES CAXIAS LTDA",
-      nome_fantasia: "METAL CAXIAS",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "2015-03-20",
-      porte: "EMPRESA DE PEQUENO PORTE",
-      logradouro: "RODOVIA WASHINGTON LUIZ",
-      numero: "4500",
-      complemento: "GALPAO 3",
-      bairro: "CHACARAS RIO-PETROPOLIS",
-      municipio: "DUQUE DE CAXIAS",
-      uf: "RJ",
-      cep: "25050009",
-      cnae_fiscal: "2539001",
-      cnae_fiscal_descricao: "Serviços de usinagem, tornearia e solda",
-      cnaes_secundarios: [
-        { codigo: "4120400", descricao: "Construção de edifícios" },
-        { codigo: "2511000", descricao: "Fabricação de estruturas metálicas" }
-      ],
-      qsa: [{ nome_socio: "Carlos Eduardo Silva" }]
-    },
-    "27865757000102": {
-      cnpj: "27865757000102",
-      razao_social: "CONFECCOES SUL FLUMINENSE LTDA",
-      nome_fantasia: "MODA SUL",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "2017-02-14",
-      porte: "MICRO EMPRESA",
-      logradouro: "RUA ALBINO DE ALMEIDA",
-      numero: "150",
-      complemento: "",
-      bairro: "CAMPOS ELISEOS",
-      municipio: "RESENDE",
-      uf: "RJ",
-      cep: "27542010",
-      cnae_fiscal: "1412601",
-      cnae_fiscal_descricao: "Confecção de peças do vestuário, exceto roupas íntimas",
-      cnaes_secundarios: [],
-      qsa: [{ nome_socio: "Juliana Mendes" }]
-    },
-    "04123456000188": {
-      cnpj: "04123456000188",
-      razao_social: "INDUSTRIA NOROESTE DE ALIMENTOS E EMBALAGENS LTDA",
-      nome_fantasia: "NOROESTE ALIMENTOS",
-      descricao_situacao_cadastral: "ATIVA",
-      data_inicio_atividade: "2012-11-15",
-      porte: "DEMAIS",
-      logradouro: "AVENIDA CARDOSO MOREIRA",
-      numero: "850",
-      complemento: "",
-      bairro: "CENTRO",
-      municipio: "ITAPERUNA",
-      uf: "RJ",
-      cep: "28300000",
-      cnae_fiscal: "1099699",
-      cnae_fiscal_descricao: "Fabricação de outros produtos alimentícios não especificados anteriormente",
-      cnaes_secundarios: [
-        { codigo: "1813001", descricao: "Impressão de material para outros usos" },
-        { codigo: "2599399", descricao: "Fabricação de outros produtos de metal" }
-      ],
-      qsa: [{ nome_socio: "Fernando Rocha" }]
-    }
-  };
+  let arrayResultadosGlobais = [];
 
-  async function buscarDadosCnpjComFallback(cnpj) {
-    if (MOCKS_OFFLINE[cnpj]) {
-      return MOCKS_OFFLINE[cnpj];
-    }
-
+  async function buscarCNPJ(cnpj) {
     try {
-      const c1 = new AbortController();
-      const t1 = setTimeout(() => c1.abort(), 4000);
-      const res1 = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj, { signal: c1.signal });
-      clearTimeout(t1);
-      if (res1.ok) {
-        return await res1.json();
-      }
-    } catch (e) {
-      console.warn("BrasilAPI falhou ou timeout.", e);
-    }
-
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if (res.ok) return await res.json();
+    } catch(e) {}
     try {
-      const c2 = new AbortController();
-      const t2 = setTimeout(() => c2.abort(), 4000);
-      const res2 = await fetch('https://publica.cnpj.ws/cnpj/' + cnpj, { signal: c2.signal });
-      clearTimeout(t2);
+      const res2 = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`);
       if (res2.ok) {
         const d = await res2.json();
         return {
-          cnpj: cnpj,
-          razao_social: d.razao_social || 'Razão Social Consultada',
-          nome_fantasia: d.estabelecimento?.nome_fantasia || d.razao_social || 'Não informado',
-          descricao_situacao_cadastral: d.estabelecimento?.situacao_cadastral || 'ATIVA',
-          data_inicio_atividade: d.estabelecimento?.data_inicio_atividade || 'Não informada',
-          porte: d.porte?.descricao || 'DEMAIS',
-          logradouro: d.estabelecimento?.logradouro || 'Não informado',
-          numero: d.estabelecimento?.numero || 'S/N',
-          complemento: d.estabelecimento?.complemento || '',
-          bairro: d.estabelecimento?.bairro || 'Não informado',
-          municipio: d.estabelecimento?.cidade?.nome || 'Rio de Janeiro',
-          uf: d.estabelecimento?.estado?.sigla || 'RJ',
-          cep: d.estabelecimento?.cep || 'Não informado',
-          cnae_fiscal: d.estabelecimento?.atividade_principal?.subclasse || '0000000',
-          cnae_fiscal_descricao: d.estabelecimento?.atividade_principal?.descricao || 'Atividade Econômica',
-          cnaes_secundarios: (d.estabelecimento?.atividades_secundarias || []).map(s => ({
-            codigo: s.subclasse,
-            descricao: s.descricao
-          })),
-          qsa: (d.socios || []).map(s => ({ nome_socio: s.nome }))
+          razao_social: d.razao_social, nome_fantasia: d.estabelecimento.nome_fantasia,
+          descricao_situacao_cadastral: d.estabelecimento.situacao_cadastral, porte: d.porte?.descricao,
+          logradouro: d.estabelecimento.logradouro, numero: d.estabelecimento.numero, bairro: d.estabelecimento.bairro,
+          municipio: d.estabelecimento.cidade.nome, uf: d.estabelecimento.estado.sigla, cep: d.estabelecimento.cep,
+          cnae_fiscal: d.estabelecimento.atividade_principal.subclasse, cnae_fiscal_descricao: d.estabelecimento.atividade_principal.descricao,
+          cnaes_secundarios: d.estabelecimento.atividades_secundarias.map(s => ({ codigo: s.subclasse, descricao: s.descricao }))
         };
       }
-    } catch (e) {
-      console.warn("CNPJ.ws falhou.", e);
-    }
-
-    return {
-      cnpj: cnpj,
-      razao_social: `EMPRESA CONSULTADA (CNPJ ${cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")})`,
-      nome_fantasia: "CONSULTA OFFLINE (SIMULADOR FIRJAN)",
-      descricao_situacao_cadastral: "ATIVA (ESTIMADA)",
-      data_inicio_atividade: "Data não recuperada",
-      porte: "DEMAIS",
-      logradouro: "Endereço RFB",
-      numero: "S/N",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "Rio de Janeiro",
-      uf: "RJ",
-      cep: "20000-000",
-      cnae_fiscal: "2511000",
-      cnae_fiscal_descricao: "Fabricação de estruturas metálicas (Simulação offline)",
-      cnaes_secundarios: [
-        { codigo: "4120400", descricao: "Construção de edifícios" }
-      ],
-      qsa: [{ nome_socio: "Quadro societário acessível no cartão CNPJ" }],
-      avisoOffline: true
-    };
-  }
-
-  // =========================================================================
-  // FUNÇÕES GLOBAIS DE CONTROLE DA INTERFACE
-  // =========================================================================
-
-  function mudarAba(paneId) {
-    document.querySelectorAll('#mainTabs .nav-link').forEach(btn => {
-      btn.classList.remove('active');
-    });
-
-    const btnAlvo = document.querySelector(`[onclick*="${paneId}"]`) || document.querySelector(`[data-bs-target="#${paneId}"]`);
-    if (btnAlvo) btnAlvo.classList.add('active');
-
-    document.querySelectorAll('.tab-content > .tab-pane').forEach(p => {
-      p.classList.remove('show', 'active');
-      p.style.display = 'none';
-    });
-
-    const targetPane = document.getElementById(paneId);
-    if (targetPane) {
-      targetPane.classList.add('show', 'active');
-      targetPane.style.display = 'block';
-    }
-  }
-
-  function carregarExemplos() {
-    const cnpjInput = document.getElementById('cnpjInput');
-    const cnpjCountBadge = document.getElementById('cnpjCountBadge');
-    if (cnpjInput) {
-      cnpjInput.value = [
-        "33.000.167/0001-01",
-        "00.000.000/0001-91",
-        "12.345.678/0001-99",
-        "28.123.456/0001-77",
-        "27.865.757/0001-02",
-        "04.123.456/0001-88"
-      ].join("\n");
-    }
-    if (cnpjCountBadge) {
-      cnpjCountBadge.innerText = "6 inserido(s)";
-    }
-    executarProcessamento();
-  }
-
-  function limparTudo() {
-    const cnpjInput = document.getElementById('cnpjInput');
-    const cnpjCountBadge = document.getElementById('cnpjCountBadge');
-    const totalEmpresasBadge = document.getElementById('totalEmpresasBadge');
-    const progressContainer = document.getElementById('progressContainer');
-    const resultsContainer = document.getElementById('resultsContainer');
-
-    if (cnpjInput) cnpjInput.value = '';
-    if (cnpjCountBadge) cnpjCountBadge.innerText = '0 inserido(s)';
-    if (totalEmpresasBadge) totalEmpresasBadge.innerText = '0 empresa(s)';
-    if (progressContainer) progressContainer.style.display = 'none';
-    
-    arrayResultadosGlobais = [];
-    if (resultsContainer) {
-      resultsContainer.innerHTML = `
-        <div class="card-custom p-5 text-center text-muted">
-          <i class="fa-solid fa-building-circle-check fs-1 text-secondary opacity-50 mb-3 d-block"></i>
-          <h6 class="fw-bold text-dark">Nenhuma empresa consultada no momento.</h6>
-          <p class="small mb-0">Insira os CNPJs no painel à esquerda e clique em <strong>Processar Consulta e Enquadramento</strong>.</p>
-        </div>
-      `;
-    }
+    } catch(e) {}
+    throw new Error("API indisponível ou CNPJ não encontrado.");
   }
 
   async function executarProcessamento() {
-    if (!motorOficialCarregado) {
-      alert("Aguarde o carregamento do Motor Oficial FIRJAN...");
-      return;
-    }
+    if (!ibgeCarregado) await carregarDicionarioIbge();
+    
+    const texto = document.getElementById('cnpjInput').value;
+    const cnpjs = texto.split(/[\n,;]+/).map(c => c.replace(/\D/g, '')).filter(c => c.length === 14);
 
-    const cnpjInput = document.getElementById('cnpjInput');
-    const btnProcessar = document.getElementById('btnProcessar');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const progressCount = document.getElementById('progressCount');
-    const totalEmpresasBadge = document.getElementById('totalEmpresasBadge');
+    if (cnpjs.length === 0) { alert("Insira ao menos 1 CNPJ válido com 14 dígitos."); return; }
 
-    const texto = cnpjInput ? cnpjInput.value : '';
-    const cnpjs = texto.split(/[\n,;]+/).map(cleanNumber).filter(c => c.length === 14);
-
-    if (cnpjs.length === 0) {
-      alert("Por favor, insira pelo menos um CNPJ válido com 14 dígitos numéricos.");
-      return;
-    }
-
-    if (resultsContainer) resultsContainer.innerHTML = '';
+    document.getElementById('resultsContainer').innerHTML = '';
     arrayResultadosGlobais = [];
-    if (progressContainer) progressContainer.style.display = 'block';
-    if (btnProcessar) btnProcessar.disabled = true;
+    document.getElementById('progressContainer').style.display = 'block';
 
     for (let i = 0; i < cnpjs.length; i++) {
       const cnpj = cnpjs[i];
-      const cnpjFormatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-
-      const pct = Math.round(((i + 1) / cnpjs.length) * 100);
-      if (progressBar) progressBar.style.width = pct + '%';
-      if (progressCount) progressCount.innerText = `${i + 1}/${cnpjs.length}`;
-      if (progressText) progressText.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i>Consultando CNPJ: <strong>${cnpjFormatado}</strong>`;
+      const formatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+      document.getElementById('progressBar').style.width = Math.round(((i+1)/cnpjs.length)*100) + '%';
+      document.getElementById('progressCount').innerText = `${i+1}/${cnpjs.length}`;
 
       try {
-        const data = await buscarDadosCnpjComFallback(cnpj);
-
-        const logradouro = data.logradouro || 'Não informado';
-        const numero = data.numero || 'S/N';
-        const complemento = data.complemento || '';
-        const bairro = data.bairro || 'Não informado';
-        const municipio = data.municipio || 'Rio de Janeiro';
-        const uf = data.uf || 'RJ';
-        const cepRaw = cleanNumber(data.cep);
-        const cepFormatado = cepRaw.length === 8 ? cepRaw.replace(/^(\d{5})(\d{3})$/, "$1-$2") : (data.cep || 'Não informado');
-        const enderecoCompleto = `${logradouro}, ${numero}${complemento ? ' - ' + complemento : ''} - ${bairro},${municipio} - ${uf}, CEP:${cepFormatado}`;
-
-        // AVALIAÇÃO OFICIAL: CNAE PRINCIPAL
-        const cnaePrincipalCode = String(data.cnae_fiscal || '0000000');
-        const avaliacaoPrincipal = avaliarCnaeExato(cnaePrincipalCode, municipio, uf);
-
-        // AVALIAÇÃO OFICIAL: CNAEs SECUNDÁRIOS
-        const cnaesSecundariosRaw = data.cnaes_secundarios && Array.isArray(data.cnaes_secundarios) ? data.cnaes_secundarios : [];
-        const analiseSecundarios = [];
-        let temSecundarioIndustrial = false;
-
-        cnaesSecundariosRaw.forEach(sec => {
-          const avSec = avaliarCnaeExato(sec.codigo, municipio, uf);
-          if (avSec.valido) {
-            analiseSecundarios.push(avSec);
-            if (avSec.isIndustrial) temSecundarioIndustrial = true;
-          }
-        });
-
-        // DEFINIÇÃO DO PERFIL DA EMPRESA (Borda e Ícone)
-        const isIndustry = avaliacaoPrincipal.isIndustrial || temSecundarioIndustrial;
-
-        const empresaObj = {
-          id: i + 1,
-          cnpj: cnpjFormatado,
-          razaoSocial: data.razao_social || 'RAZÃO SOCIAL NÃO LOCALIZADA',
-          nomeFantasia: data.nome_fantasia || 'NÃO INFORMADO',
-          situacao: data.descricao_situacao_cadastral || 'ATIVA',
-          dataAbertura: data.data_inicio_atividade || 'Não informada',
-          porte: data.porte || 'DEMAIS',
-          socios: data.qsa && data.qsa.length > 0 ? data.qsa.map(s => s.nome_socio).join(', ') : 'Não informado',
-          logradouro, numero, complemento, bairro, municipio, uf,
-          cep: cepFormatado, enderecoCompleto,
-          cnaePrincipal: avaliacaoPrincipal,
-          cnaesSecundarios: analiseSecundarios,
-          isIndustry: isIndustry,
-          avisoOffline: !!data.avisoOffline
+        const data = await buscarCNPJ(cnpj);
+        const avPrinc = avaliarCnae(data.cnae_fiscal, data.cnae_fiscal_descricao, data.municipio, data.uf);
+        const avSecs = (data.cnaes_secundarios || []).map(s => avaliarCnae(s.codigo, s.descricao, data.municipio, data.uf));
+        
+        const empresa = {
+          cnpj: formatado, razao: data.razao_social, fantasia: data.nome_fantasia || 'NÃO INFORMADO',
+          situacao: data.descricao_situacao_cadastral, porte: data.porte || 'DEMAIS',
+          munUf: `${data.municipio} - ${data.uf}`, cep: data.cep,
+          princ: avPrinc, secs: avSecs, isInd: avPrinc.isIndustrial || avSecs.some(s => s.isIndustrial)
         };
-
-        arrayResultadosGlobais.push(empresaObj);
-        renderEmpresaCard(empresaObj);
-
-      } catch (err) {
-        renderErrorCard(cnpjFormatado, err.message);
+        arrayResultadosGlobais.push(empresa);
+        renderCard(empresa, i);
+      } catch(err) {
+        document.getElementById('resultsContainer').innerHTML += `<div class="company-card p-3 border-danger"><strong class="text-danger">${formatado}</strong> - Erro: ${err.message}</div>`;
       }
-
-      await sleep(50);
     }
-
-    if (progressText) progressText.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i>Processamento de <strong>${cnpjs.length}</strong> empresa(s) concluído com sucesso!`;
-    if (progressBar) {
-      progressBar.style.width = '100%';
-      progressBar.classList.remove('progress-bar-animated');
-    }
-    if (totalEmpresasBadge) totalEmpresasBadge.innerText = `${arrayResultadosGlobais.length} empresa(s)`;
-    if (btnProcessar) btnProcessar.disabled = false;
+    
+    document.getElementById('progressText').innerHTML = `<i class="fa-solid fa-check text-success"></i> Concluído!`;
+    document.getElementById('totalEmpresasBadge').innerText = `${arrayResultadosGlobais.length} empresa(s)`;
   }
 
-  function renderEmpresaCard(emp) {
-    const resultsContainer = document.getElementById('resultsContainer');
-    const card = document.createElement('div');
-    card.className = `company-card ${emp.isIndustry ? 'is-industry' : 'not-industry'}`;
-    card.id = `empresa-card-${emp.id}`;
+  function renderCard(emp, id) {
+    const linhasSec = emp.secs.map(s => `
+      <tr>
+        <td><span class="badge bg-secondary font-monospace">${s.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span></td>
+        <td><span class="text-dark fw-bold">${s.desc}</span></td>
+        <td><strong class="${s.situacao==='Enquadrado'?'text-success':'text-muted'}">${s.sindicato}</strong></td>
+        <td><span class="badge ${s.badge}">${s.situacao}</span></td>
+      </tr>
+    `).join('');
 
-    const ep = emp.cnaePrincipal;
-
-    let secundariosHtml = '';
-    if (emp.cnaesSecundarios.length > 0) {
-      const totalSec = emp.cnaesSecundarios.length;
-      const totalEnq = emp.cnaesSecundarios.filter(s => s.situacao === 'Enquadrado').length;
-
-      const linhasSec = emp.cnaesSecundarios.map((s) => `
-        <tr class="sec-row" data-situacao="${s.situacao}">
-          <td style="width: 15%"><span class="badge bg-secondary font-monospace">${s.codigo.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span></td>
-          <td style="width: 32%"><span class="text-dark fw-normal">${s.desc}</span></td>
-          <td style="width: 25%"><strong class="${s.situacao === 'Enquadrado' ? 'text-success' : 'text-muted'}">${s.sindicato}</strong></td>
-          <td style="width: 18%"><span class="text-secondary small">${s.regra}</span></td>
-          <td style="width: 10%"><span class="badge ${s.badge}">${s.situacao}</span></td>
-        </tr>
-      `).join('');
-
-      secundariosHtml = `
-        <div class="accordion mt-3" id="accSec-${emp.id}">
-          <div class="accordion-item border rounded overflow-hidden">
-            <h2 class="accordion-header" id="headingSec-${emp.id}">
-              <button class="accordion-button collapsed py-2 bg-light fw-bold text-dark small" type="button" onclick="toggleAccordion('collapseSec-${emp.id}')">
-                <i class="fa-solid fa-layer-group me-2 text-primary"></i>
-                Detalhamento dos CNAEs Secundários (${totalSec} analisado(s) | <span class="text-success ms-1">${totalEnq} com enquadramento industrial</span>)
-              </button>
-            </h2>
-            <div id="collapseSec-${emp.id}" class="accordion-collapse collapse">
-              <div class="accordion-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <div class="btn-group filter-btn-group" role="group">
-                    <button type="button" class="btn btn-outline-primary active btn-filter" data-target="empresa-card-${emp.id}" data-filter="TODOS">Todos (${totalSec})</button>
-                    <button type="button" class="btn btn-outline-success btn-filter" data-target="empresa-card-${emp.id}" data-filter="Enquadrado">Enquadrados (${totalEnq})</button>
-                    <button type="button" class="btn btn-outline-secondary btn-filter" data-target="empresa-card-${emp.id}" data-filter="Outros">Outros (${totalSec - totalEnq})</button>
-                  </div>
-                  <span class="small text-muted fst-italic">Análise independente de cada CNAE secundário</span>
-                </div>
-                <div class="table-responsive">
-                  <table class="table table-sm table-secundarios table-hover">
-                    <thead>
-                      <tr>
-                        <th>CNAE Secundário</th>
-                        <th>Descrição da Atividade (IBGE/FIRJAN)</th>
-                        <th>Sindicato Patronal Mapeado</th>
-                        <th>Regra / Fundamento</th>
-                        <th>Situação</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${linhasSec}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+    const html = `
+      <div class="company-card ${emp.isInd ? 'is-industry' : 'not-industry'}">
+        <div class="company-header d-flex justify-content-between">
+          <div>
+            <span class="font-monospace fw-bold fs-5 text-primary">${emp.cnpj}</span>
+            <span class="badge bg-light text-dark border">${emp.porte}</span>
+            <span class="badge ${emp.situacao==='ATIVA'?'bg-success':'bg-danger'}">${emp.situacao}</span>
+            <h5 class="fw-bold mt-2">${emp.razao}</h5>
+          </div>
+          <div>${emp.isInd ? '<span class="badge-industry"><i class="fa-solid fa-industry"></i> Perfil Indústria</span>' : '<span class="badge-commercial"><i class="fa-solid fa-store"></i> Comércio/Serviços</span>'}</div>
+        </div>
+        <div class="company-body row g-3">
+          <div class="col-lg-4">
+            <div class="box-endereco-destaque">
+              <div class="fw-bold small text-danger mb-2">LOCALIZAÇÃO</div>
+              <div class="small"><strong>Mun/UF:</strong> ${emp.munUf}</div>
+              <div class="small"><strong>CEP:</strong> ${emp.cep}</div>
             </div>
           </div>
-        </div>
-      `;
-    } else {
-      secundariosHtml = `
-        <div class="p-2 px-3 bg-light border rounded text-muted small mt-3">
-          <i class="fa-solid fa-info-circle me-1 text-primary"></i>
-          Empresa possui exclusivamente CNAE principal registrado (sem atividades secundárias).
-        </div>
-      `;
-    }
-
-    card.innerHTML = `
-      <div class="company-header d-flex justify-content-between align-items-start">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="font-monospace fw-bold fs-5 text-primary">${emp.cnpj}</span>
-            <span class="badge bg-light text-dark border font-monospace">${emp.porte}</span>
-            <span class="badge ${emp.situacao === 'ATIVA' ? 'bg-success' : 'bg-danger'}">${emp.situacao}</span>${emp.avisoOffline ? '<span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>Modo Simulação (API Indisponível)</span>' : ''}
+          <div class="col-lg-8">
+            <div class="box-enquadramento-destaque">
+              <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                <span class="fw-bold text-primary">ENQUADRAMENTO PRINCIPAL</span>
+                <span class="badge ${emp.princ.badge}">${emp.princ.situacao}</span>
+              </div>
+              <div class="sindicato-titulo mb-2">${emp.princ.sindicato}</div>
+              <div class="small mb-1">
+                <span class="badge bg-primary font-monospace">${emp.princ.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span> 
+                <strong>${emp.princ.desc}</strong>
+              </div>
+              <div class="small text-muted mt-2 border-top pt-2"><em>Regra Aplicada: ${emp.princ.regra}</em></div>
+            </div>
           </div>
-          <h5 class="fw-bold text-dark mb-0">${emp.razaoSocial}</h5>
-          <div class="small text-muted"><i class="fa-regular fa-id-card me-1"></i>Nome Fantasia: <strong>${emp.nomeFantasia}</strong></div>
-        </div>
-        <div>
-          ${emp.isIndustry 
-            ? '<span class="badge-industry shadow-sm"><i class="fa-solid fa-industry"></i> Perfil Indústria</span>' 
-            : '<span class="badge-commercial shadow-sm"><i class="fa-solid fa-store"></i> Comércio / Serviços</span>'}
+          ${emp.secs.length > 0 ? `
+          <div class="col-12 mt-3">
+            <div class="fw-bold small text-muted mb-2"><i class="fa-solid fa-layer-group"></i> Detalhamento de CNAEs Secundários (${emp.secs.length})</div>
+            <div class="table-responsive"><table class="table table-sm table-secundarios table-hover">
+              <thead><tr><th>CNAE</th><th>Descrição (IBGE/Oficial)</th><th>Sindicato Mapeado</th><th>Situação</th></tr></thead>
+              <tbody>${linhasSec}</tbody>
+            </table></div>
+          </div>` : ''}
         </div>
       </div>
+    `;
+    document.getElementById('resultsContainer').innerHTML += html;
+  }
 
-      <div class="company-body">
-        <div class="row g-3">
-          <div class="col-lg-5">
-            <div class="box-endereco-destaque">
-              <div class="fw-bold text-dark small mb-2 border-bottom pb-1">
-                <i class="fa-solid fa-location-dot me-1 text-danger"></i> DADOS CADASTRAIS & LOCALIZAÇÃO
-              </div>
-              <div class="small mb-1"><strong>Logradouro:</strong> ${emp.logradouro}</div>
-              <div class="small mb-1"><strong>Número / Compl.:</strong> ${emp.numero}${emp.complemento ? '(' + emp.complemento + ')' : ''}</div>
-              <div class="small mb-1"><strong>Bairro / Distrito:</strong> <span class="badge bg-light text-dark border">${emp.bairro}</span></div>
-              <div class="small mb-1"><strong>Município / UF:</strong> <strong>${emp.municipio} -${emp.uf}</strong></div>
-              <div class="small mb-2"><strong>CEP:</strong> <span class="font-monospace">${emp.cep}</span></div>
-              <div class="small border-top pt-2 mt-2">
-                <div><strong>Data de Abertura:</strong> ${emp.dataAbertura}</div>
-                <div><strong>Quadro de Sócios (QSA):</strong> <span class="text-secondary">${emp.socios}</span></div>
-              </div>
-            </div>
-          </div>
+  // Utilitários de Interface
+  function mudarAba(id) {
+    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+    document.querySelector(`[onclick="mudarAba('${id}')"]`).classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('show', 'active'));
+    document.getElementById(id).classList.add('show', 'active');
+  }
+  function limparTudo() { document.getElementById('cnpjInput').value=''; document.getElementById('resultsContainer').innerHTML=''; arrayResultadosGlobais=[]; document.getElementById('progressContainer').style.display='none'; document.getElementById('totalEmpresasBadge').innerText='0'; }
+  function carregarExemplos() { document.getElementById('cnpjInput').value = "33.000.167/0001-01\n12.345.678/0001-99"; executarProcessamento(); }
+  function exportarExcel() { if(!arrayResultadosGlobais.length) return alert("Sem dados."); const ws = XLSX.utils.json_to_sheet(arrayResultadosGlobais.map(e => ({CNPJ: e.cnpj, Razao: e.razao, Município: e.munUf, CNAE: e.princ.cnae, Descricao: e.princ.desc, Sindicato: e.princ.sindicato}))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Triagem"); XLSX.writeFile(wb, "Triagem_FIRJAN.xlsx"); }
+  function copiarTsv() { alert("Use o botão Exportar Excel para dados tabulares formatados."); }
+  
+  document.getElementById('cnpjInput').addEventListener('input', e => {
+    document.getElementById('cnpjCountBadge').innerText = `${e.target.value.split(/[\n,;]+/).map(c=>c.replace(/\D/g,'')).filter(c=>c.length===14).length} inserido(s)`;
+  });
 
-          <div class="col-lg-7">
+  window.onload = carregarDicionarioIbge;
+  </script>
+</body>
+</html>
