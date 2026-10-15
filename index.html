@@ -1833,47 +1833,18 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- ============================================================================
-     MÓDULO ADICIONAL: ANÁLISE DE CNAEs PRESENTES EM TODOS OS CNPJs (ATIVIDADES)
-     100% Isolado (Não altera nem sobrescreve funções existentes do sistema)
+     ENRIQUECIMENTO AUTOMÁTICO: ATIVIDADE DA CNAE AO LADO DO NÚMERO DA CNAE
+     Executa automaticamente ao exibir os CNPJs e enquadramentos (Sem botões extras)
 ============================================================================= -->
 <style>
-  #painelCnaesLoteWrapper {
-    transition: all 0.25s ease-in-out;
+  .cnae-atividade-inline {
+    font-weight: 500;
+    color: #334155;
   }
-  .badge-cnae-codigo {
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.85rem;
-    letter-spacing: 0.3px;
-  }
-  .tabela-cnaes-lote th {
-    background-color: #f8fafc;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #475569;
-    vertical-align: middle;
-  }
-  .tabela-cnaes-lote td {
-    vertical-align: middle;
-    font-size: 0.875rem;
-  }
-  .chip-empresa-cnae {
-    display: inline-block;
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 2px 8px;
-    margin: 2px 4px 2px 0;
-    font-size: 0.76rem;
-    color: #1e293b;
-  }
-  .chip-empresa-cnae .tipo-p {
-    color: #0d6efd;
-    font-weight: 700;
-  }
-  .chip-empresa-cnae .tipo-s {
-    color: #64748b;
-    font-weight: 600;
+  .badge .cnae-atividade-inline {
+    color: inherit;
+    font-weight: 400;
+    opacity: 0.95;
   }
 </style>
 
@@ -1881,13 +1852,60 @@
 (function () {
   'use strict';
 
-  // Cache passivo que captura os dados brutos de CNAE direto das respostas da BrasilAPI
-  // sem interferir no funcionamento normal do fetch original
-  const cacheCnaesPorCnpj = new Map();
-  let modoVisualizacaoAtual = 'comuns'; // 'comuns' | 'frequencia' | 'por_cnpj'
-  let filtroTipoCnae = 'todos'; // 'todos' | 'principal'
+  // Dicionário em memória: codigo7Digitos -> Descrição Oficial da Atividade
+  const dicionarioAtividadesCnae = new Map();
 
-  // 1. Interceptador Passivo do window.fetch (Clona resposta da BrasilAPI sem consumi-la)
+  function normalizarCodigoCnae(valor) {
+    if (valor === null || valor === undefined) return null;
+    const digitos = String(valor).replace(/\D/g, '');
+    if (digitos.length < 6 || digitos.length > 7 || /^0+$/.test(digitos)) return null;
+    return digitos.padStart(7, '0');
+  }
+
+  function registrarAtividade(codigoBruto, descricaoBruta) {
+    const cod = normalizarCodigoCnae(codigoBruto);
+    if (!cod || !descricaoBruta) return;
+    const desc = String(descricaoBruta).trim();
+    if (!desc || desc.toLowerCase() === 'não informada' || desc.toLowerCase() === 'undefined') return;
+    dicionarioAtividadesCnae.set(cod, desc);
+  }
+
+  // 1. Carrega descrições que já existam na baseCNAEs interna do sistema (se houver)
+  function carregarDaBaseInterna() {
+    try {
+      const fonte = (typeof baseCNAEs !== 'undefined' && baseCNAEs) || window.baseCNAEs;
+      if (fonte && typeof fonte === 'object') {
+        Object.keys(fonte).forEach((chave) => {
+          const item = fonte[chave];
+          if (typeof item === 'string') {
+            registrarAtividade(chave, item);
+          } else if (item && typeof item === 'object') {
+            registrarAtividade(chave, item.descricao || item.atividade || item.denominacao || item.nome);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  // 2. Carrega o dicionário completo de Subclasses CNAE direto da API Oficial do IBGE
+  async function carregarDicionarioIbge() {
+    try {
+      const resp = await fetch('https://servicodados.ibge.gov.br/api/v2/cnae/subclasses');
+      if (!resp.ok) return;
+      const lista = await resp.json();
+      if (Array.isArray(lista)) {
+        lista.forEach((item) => {
+          if (item && item.id && item.descricao) {
+            registrarAtividade(item.id, item.descricao);
+          }
+        });
+        aplicarDescricaoNasCnaesDaTela();
+      }
+    } catch (_) {}
+  }
+
+  // 3. Intercepta passivamente as consultas de CNPJ (BrasilAPI / ReceitaWS / CNPJ.ws)
+  // para capturar imediatamente a atividade do CNAE Principal e dos Secundários
   const fetchOriginal = window.fetch;
   if (fetchOriginal) {
     window.fetch = async function (...args) {
@@ -1897,10 +1915,33 @@
         if (url.includes('cnpj') && response && response.ok) {
           const clone = response.clone();
           clone.json().then((data) => {
-            if (data && data.cnpj) {
-              const cnpjLimpo = String(data.cnpj).replace(/\D/g, '').padStart(14, '0');
-              cacheCnaesPorCnpj.set(cnpjLimpo, data);
+            if (!data) return;
+
+            // Formato BrasilAPI
+            if (data.cnae_fiscal) {
+              registrarAtividade(data.cnae_fiscal, data.cnae_fiscal_descricao);
             }
+            if (Array.isArray(data.cnaes_secundarios)) {
+              data.cnaes_secundarios.forEach((sec) => {
+                if (sec) registrarAtividade(sec.codigo, sec.descricao);
+              });
+            }
+
+            // Formato publica.cnpj.ws (caso utilizado como fallback)
+            if (data.estabelecimento) {
+              const est = data.estabelecimento;
+              if (est.atividade_principal) {
+                registrarAtividade(est.atividade_principal.id, est.atividade_principal.descricao);
+              }
+              if (Array.isArray(est.atividades_secundarias)) {
+                est.atividades_secundarias.forEach((sec) => {
+                  if (sec) registrarAtividade(sec.id, sec.descricao);
+                });
+              }
+            }
+
+            // Atualiza a tela assim que o JSON do CNPJ é processado
+            setTimeout(aplicarDescricaoNasCnaesDaTela, 60);
           }).catch(() => {});
         }
       } catch (_) {}
@@ -1908,697 +1949,166 @@
     };
   }
 
-  // 2. Funções Utilitárias de Normalização e Segurança
-  function escaparHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  function normalizarTextoComparacao(str) {
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
-  function normalizarCodigoCnae(codigoBruto) {
-    if (codigoBruto === null || codigoBruto === undefined) return null;
-    const apenasDigitos = String(codigoBruto).replace(/\D/g, '');
-    if (!apenasDigitos || /^0+$/.test(apenasDigitos)) return null;
-    return apenasDigitos.length === 6 ? apenasDigitos.padStart(7, '0') : apenasDigitos.padStart(7, '0');
+  function obterDescricaoCnae(codigoBruto) {
+    const cod = normalizarCodigoCnae(codigoBruto);
+    if (!cod) return null;
+    return dicionarioAtividadesCnae.get(cod) || null;
   }
 
-  function formatarMascaraCnae(codigo7) {
-    const limpo = normalizarCodigoCnae(codigo7);
-    if (!limpo || limpo.length !== 7) return codigo7 || '';
-    return `${limpo.slice(0, 2)}.${limpo.slice(2, 4)}-${limpo.slice(4, 5)}-${limpo.slice(5, 7)}`;
-  }
-
-  function formatarMascaraCnpj(cnpj) {
-    const limpo = String(cnpj || '').replace(/\D/g, '').padStart(14, '0');
-    if (limpo.length !== 14) return cnpj || '';
-    return limpo.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-  }
-
-  function obterDescricaoOficialCnae(codigoLimpo, descricaoApi) {
-    if (descricaoApi && String(descricaoApi).trim() !== '' && String(descricaoApi).toLowerCase() !== 'não informada') {
-      return String(descricaoApi).trim();
-    }
-    // Fallback na baseCNAEs interna do sistema, caso exista no escopo global
-    try {
-      if (typeof baseCNAEs !== 'undefined' && baseCNAEs && baseCNAEs[codigoLimpo]) {
-        const itemBase = baseCNAEs[codigoLimpo];
-        if (typeof itemBase === 'string') return itemBase;
-        if (itemBase.descricao) return itemBase.descricao;
-        if (itemBase.atividade) return itemBase.atividade;
-        if (itemBase.denominacao) return itemBase.denominacao;
-      }
-      if (window.baseCNAEs && window.baseCNAEs[codigoLimpo]) {
-        const itemWin = window.baseCNAEs[codigoLimpo];
-        if (typeof itemWin === 'string') return itemWin;
-        return itemWin.descricao || itemWin.atividade || itemWin.denominacao || 'Atividade cadastrada na base interna';
-      }
-    } catch (_) {}
-    return 'Descrição da atividade não informada pela API';
-  }
-
-  // 3. Coletor Unificado de Empresas e CNAEs (Lê arrayResultadosGlobais + cacheCnaesPorCnpj + DOM)
-  function extrairEmpresasConsultadas() {
-    const mapaEmpresas = new Map();
-
-    // Fonte A: Variável global arrayResultadosGlobais (se acessível)
-    let listaGlobal = [];
-    try {
-      if (typeof arrayResultadosGlobais !== 'undefined' && Array.isArray(arrayResultadosGlobais)) {
-        listaGlobal = arrayResultadosGlobais;
-      } else if (Array.isArray(window.arrayResultadosGlobais)) {
-        listaGlobal = window.arrayResultadosGlobais;
-      }
-    } catch (_) {}
-
-    listaGlobal.forEach((emp) => {
-      if (!emp) return;
-      const cnpjLimpo = String(emp.cnpj || '').replace(/\D/g, '').padStart(14, '0');
-      if (!cnpjLimpo || /^0+$/.test(cnpjLimpo)) return;
-
-      const razao = emp.razaoSocial || emp.razao_social || emp.nomeEmpresarial || 'Empresa Consultada';
-      const listaCnaes = [];
-      const codigosAdicionados = new Set();
-
-      const adicionarCnae = (codBruto, descBruta, tipo) => {
-        const codLimpo = normalizarCodigoCnae(codBruto);
-        if (!codLimpo || codigosAdicionados.has(codLimpo)) return;
-        codigosAdicionados.add(codLimpo);
-        listaCnaes.push({
-          codigo: codLimpo,
-          codigoFormatado: formatarMascaraCnae(codLimpo),
-          descricao: obterDescricaoOficialCnae(codLimpo, descBruta),
-          tipo: tipo // 'Principal' | 'Secundário'
-        });
-      };
-
-      // Tenta extrair CNAE Principal de qualquer formato salvo no objeto
-      if (emp.cnae_fiscal || emp.cnaePrincipal || emp.cnae_principal) {
-        const cp = emp.cnae_fiscal || emp.cnaePrincipal || emp.cnae_principal;
-        if (typeof cp === 'object') {
-          adicionarCnae(cp.codigo || cp.code || cp.cnae, cp.descricao || cp.text || cp.atividade, 'Principal');
-        } else {
-          adicionarCnae(cp, emp.cnae_fiscal_descricao || emp.cnaePrincipalDescricao || emp.descricaoCnaePrincipal, 'Principal');
-        }
-      }
-      if (emp.enquadramento && emp.enquadramento.cnaePrincipal) {
-        const ep = emp.enquadramento.cnaePrincipal;
-        adicionarCnae(ep.codigo || ep, ep.descricao, 'Principal');
-      }
-
-      // Tenta extrair array todasAnalisadas / cnaes / cnaesSecundarios
-      const possiveisArrays = [
-        emp.todasAnalisadas,
-        emp.cnaes,
-        emp.cnaesSecundarios,
-        emp.cnaes_secundarios,
-        emp.secundarios,
-        emp.enquadramento && emp.enquadramento.todasAnalisadas,
-        emp.enquadramento && emp.enquadramento.secundarios
-      ];
-
-      possiveisArrays.forEach((arr) => {
-        if (!Array.isArray(arr)) return;
-        arr.forEach((item, idx) => {
-          if (!item) return;
-          if (typeof item === 'object') {
-            const tipoItem =
-              item.tipo && String(item.tipo).toLowerCase().includes('princ')
-                ? 'Principal'
-                : codigosAdicionados.size === 0 && idx === 0 && arr === emp.todasAnalisadas
-                ? 'Principal'
-                : 'Secundário';
-            adicionarCnae(
-              item.codigo || item.codigoNormalizado || item.code || item.cnae,
-              item.descricao || item.text || item.atividade,
-              tipoItem
-            );
-          } else if (typeof item === 'string' || typeof item === 'number') {
-            // Caso seja string no formato "0000000 - Descrição"
-            const partes = String(item).split(/\s+-\s+|\s+–\s+/);
-            const cod = partes[0];
-            const desc = partes.slice(1).join(' - ');
-            adicionarCnae(cod, desc, codigosAdicionados.size === 0 ? 'Principal' : 'Secundário');
-          }
-        });
-      });
-
-      mapaEmpresas.set(cnpjLimpo, {
-        cnpj: cnpjLimpo,
-        cnpjFormatado: formatarMascaraCnpj(cnpjLimpo),
-        razaoSocial: razao,
-        cnaes: listaCnaes
-      });
-    });
-
-    // Fonte B: Complementa ou popula via cacheCnaesPorCnpj (retorno direto da BrasilAPI)
-    cacheCnaesPorCnpj.forEach((dadosApi, cnpjLimpo) => {
-      const existente = mapaEmpresas.get(cnpjLimpo);
-      const razao = (existente && existente.razaoSocial) || dadosApi.razao_social || dadosApi.nome_fantasia || 'Empresa Consultada';
-      const listaCnaes = existente ? [...existente.cnaes] : [];
-      const codigosAdicionados = new Set(listaCnaes.map((c) => c.codigo));
-
-      const adicionarCnaeApi = (codBruto, descBruta, tipo) => {
-        const codLimpo = normalizarCodigoCnae(codBruto);
-        if (!codLimpo) return;
-        if (codigosAdicionados.has(codLimpo)) {
-          // Atualiza descrição se a existente for genérica
-          const itemExistente = listaCnaes.find((c) => c.codigo === codLimpo);
-          if (itemExistente && (!itemExistente.descricao || itemExistente.descricao.includes('não informada')) && descBruta) {
-            itemExistente.descricao = obterDescricaoOficialCnae(codLimpo, descBruta);
-          }
-          return;
-        }
-        codigosAdicionados.add(codLimpo);
-        listaCnaes.push({
-          codigo: codLimpo,
-          codigoFormatado: formatarMascaraCnae(codLimpo),
-          descricao: obterDescricaoOficialCnae(codLimpo, descBruta),
-          tipo: tipo
-        });
-      };
-
-      if (dadosApi.cnae_fiscal) {
-        adicionarCnaeApi(dadosApi.cnae_fiscal, dadosApi.cnae_fiscal_descricao, 'Principal');
-      }
-      if (Array.isArray(dadosApi.cnaes_secundarios)) {
-        dadosApi.cnaes_secundarios.forEach((sec) => {
-          if (sec) adicionarCnaeApi(sec.codigo, sec.descricao, 'Secundário');
-        });
-      }
-
-      mapaEmpresas.set(cnpjLimpo, {
-        cnpj: cnpjLimpo,
-        cnpjFormatado: formatarMascaraCnpj(cnpjLimpo),
-        razaoSocial: razao,
-        cnaes: listaCnaes
-      });
-    });
-
-    return Array.from(mapaEmpresas.values()).filter((e) => e.cnaes.length > 0);
-  }
-
-  // 4. Processamento Matemático de Interseção (100% dos CNPJs) e Consolidação
-  function processarAnaliseDeCnaes() {
-    const empresas = extrairEmpresasConsultadas();
-    const totalEmpresas = empresas.length;
-    const mapaCnaes = new Map(); // codigo -> { codigo, codigoFormatado, descricao, ocorrenciasPorCnpj: Map }
-
-    empresas.forEach((emp) => {
-      emp.cnaes.forEach((cnae) => {
-        if (filtroTipoCnae === 'principal' && cnae.tipo !== 'Principal') return;
-
-        if (!mapaCnaes.has(cnae.codigo)) {
-          mapaCnaes.set(cnae.codigo, {
-            codigo: cnae.codigo,
-            codigoFormatado: cnae.codigoFormatado,
-            descricao: cnae.descricao,
-            ocorrencias: []
-          });
-        }
-        const registro = mapaCnaes.get(cnae.codigo);
-        if (
-          (!registro.descricao || registro.descricao.includes('não informada')) &&
-          cnae.descricao &&
-          !cnae.descricao.includes('não informada')
-        ) {
-          registro.descricao = cnae.descricao;
-        }
-
-        // Evita duplicar o mesmo CNPJ dentro do mesmo CNAE
-        if (!registro.ocorrencias.some((o) => o.cnpj === emp.cnpj)) {
-          registro.ocorrencias.push({
-            cnpj: emp.cnpj,
-            cnpjFormatado: emp.cnpjFormatado,
-            razaoSocial: emp.razaoSocial,
-            tipo: cnae.tipo
-          });
-        }
-      });
-    });
-
-    const todosCnaesUnicos = Array.from(mapaCnaes.values()).map((item) => {
-      const qtdEmpresas = item.ocorrencias.length;
-      const percentual = totalEmpresas > 0 ? Math.round((qtdEmpresas / totalEmpresas) * 100) : 0;
-      return {
-        ...item,
-        qtdEmpresas,
-        totalEmpresas,
-        percentual,
-        presenteEmTodos: totalEmpresas > 0 && qtdEmpresas === totalEmpresas
-      };
-    });
-
-    // Ordena por maior frequência e depois por código CNAE
-    todosCnaesUnicos.sort((a, b) => b.qtdEmpresas - a.qtdEmpresas || a.codigo.localeCompare(b.codigo));
-
-    const cnaesEmComum = todosCnaesUnicos.filter((c) => c.presenteEmTodos);
-
-    return {
-      empresas,
-      totalEmpresas,
-      todosCnaesUnicos,
-      cnaesEmComum
-    };
-  }
-
-  // 5. Renderização da Interface do Painel de CNAEs
-  function renderizarPainelCnaes() {
-    const container = document.getElementById('painelCnaesLoteWrapper');
+  // 4. Varre os cards renderizados e adiciona a atividade ao lado de cada número de CNAE
+  function aplicarDescricaoNasCnaesDaTela() {
+    const container =
+      document.getElementById('resultsContainer') ||
+      document.getElementById('resultBody');
     if (!container) return;
 
-    const { empresas, totalEmpresas, todosCnaesUnicos, cnaesEmComum } = processarAnaliseDeCnaes();
+    // Padrão 1: CNAEs formatados (ex: 10.11-2-01, 10.11-2/01, 1011-2/01, 1011-2-01)
+    // Padrão 2: CNAEs de 7 dígitos puros (ex: 1011201) que existam no dicionário de CNAEs
+    const regexCnaeFormatado = /\b(\d{2}\.?\d{2}-\d(?:-|/)\d{2})\b/g;
+    const regexCnaeSeteDigitos = /\b(\d{7})\b/g;
 
-    if (totalEmpresas === 0) {
-      container.innerHTML = `
-        <div class="card border-warning shadow-sm mb-4">
-          <div class="card-body d-flex justify-content-between align-items-center py-3">
-            <div>
-              <h6 class="mb-1 fw-bold text-dark">
-                <i class="bi bi-diagram-3-fill text-warning me-2"></i>Análise de CNAEs Presentes nos CNPJs
-              </h6>
-              <p class="mb-0 small text-muted">
-                Nenhum CNPJ processado ainda. Insira os CNPJs à esquerda e clique em <strong>Processar Consulta e Enquadramento</strong> primeiro.
-              </p>
-            </div>
-            <button type="button" class="btn-close" aria-label="Fechar" id="btnFecharPainelCnaesVazio"></button>
-          </div>
-        </div>
-      `;
-      const btnClose = document.getElementById('btnFecharPainelCnaesVazio');
-      if (btnClose) btnClose.onclick = () => { container.style.display = 'none'; };
-      return;
-    }
+    const elementos = container.querySelectorAll('span, strong, b, td, li, div, p, code, small');
 
-    // Monta as linhas da tabela conforme o modo selecionado
-    let htmlTabela = '';
+    elementos.forEach((el) => {
+      // Evita processar containers pais grandes; foca nos elementos de ponta que contêm o código
+      if (el.children.length > 3) return;
+      if (el.classList && el.classList.contains('cnae-atividade-inline')) return;
 
-    if (modoVisualizacaoAtual === 'comuns') {
-      if (cnaesEmComum.length === 0) {
-        htmlTabela = `
-          <div class="alert alert-warning mb-0 d-flex align-items-start gap-2">
-            <i class="bi bi-exclamation-triangle-fill fs-5 mt-1"></i>
-            <div>
-              <strong>Nenhuma CNAE está presente simultaneamente em 100% dos ${totalEmpresas} CNPJs consultados.</strong>
-              <div class="small mt-1">
-                As empresas consultadas possuem atividades distintas entre si neste filtro.
-                Clique na aba <strong>"Consolidado por CNAE (Frequência)"</strong> ou <strong>"Todas as CNAEs por CNPJ"</strong> acima para visualizar todas as atividades encontradas no lote.
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        htmlTabela = `
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered tabela-cnaes-lote mb-0">
-              <thead>
-                <tr>
-                  <th style="width: 130px;">Código CNAE</th>
-                  <th>Atividade do CNAE (Descrição Oficial)</th>
-                  <th style="width: 140px;" class="text-center">Presença no Lote</th>
-                  <th style="width: 34%;">Vínculo em Cada CNPJ</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${cnaesEmComum.map((item) => `
-                  <tr>
-                    <td>
-                      <span class="badge bg-primary badge-cnae-codigo">${escaparHtml(item.codigoFormatado)}</span>
-                      <div class="text-muted" style="font-size: 0.72rem;">${escaparHtml(item.codigo)}</div>
-                    </td>
-                    <td class="fw-semibold text-dark">${escaparHtml(item.descricao)}</td>
-                    <td class="text-center">
-                      <span class="badge bg-success">${item.qtdEmpresas}/${item.totalEmpresas} CNPJs (100%)</span>
-                    </td>
-                    <td>
-                      ${item.ocorrencias.map((oc) => `
-                        <span class="chip-empresa-cnae" title="${escaparHtml(oc.razaoSocial)}">
-                          <strong>${escaparHtml(oc.cnpjFormatado)}</strong>
-                          <span class="${oc.tipo === 'Principal' ? 'tipo-p' : 'tipo-s'}">(${oc.tipo === 'Principal' ? 'Principal' : 'Secundário'})</span>
-                        </span>
-                      `).join('')}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
+      const textoElemento = (el.textContent || '').trim();
+      if (!textoElemento) return;
+
+      // Ignora textos que são claramente CNPJ, CEP ou Telefone
+      if (/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(textoElemento)) return;
+      if (/^cep\b/i.test(textoElemento) || /^\d{5}-\d{3}$/.test(textoElemento)) return;
+
+      // Caso A: O elemento é um badge ou tag contendo apenas o código da CNAE (ex: <span class="badge">25.99-3-99</span> ou "CNAE 2599399")
+      const matchIsolado = textoElemento.match(/^(?:CNAE\s*:?\s*)?(\d{2}\.?\d{2}-\d(?:-|/)\d{2}|\d{7})$/i);
+      if (matchIsolado) {
+        const codigoEncontrado = matchIsolado[1];
+        const descricao = obterDescricaoCnae(codigoEncontrado);
+        if (!descricao) return;
+
+        // Verifica se a descrição já está escrita ao lado (no próximo elemento/texto irmão ou na mesma linha)
+        const contextoVizinho =
+          (el.nextSibling ? el.nextSibling.textContent : '') +
+          ' ' +
+          (el.nextElementSibling ? el.nextElementSibling.textContent : '');
+        const linhaPai = el.closest('li, tr, p') || el.parentElement;
+        const textoContexto = normalizarTextoComparacao(
+          contextoVizinho + ' ' + (linhaPai && linhaPai.children.length <= 3 ? linhaPai.textContent : '')
+        );
+        const trechoDescricao = normalizarTextoComparacao(descricao).slice(0, 18);
+
+        if (trechoDescricao && textoContexto.includes(trechoDescricao)) {
+          return; // Já possui a descrição ao lado, não duplica
+        }
+
+        // Se ao lado estiver escrito "Não informada" ou "undefined", substitui pelo texto correto
+        if (el.nextSibling && el.nextSibling.nodeType === Node.TEXT_NODE) {
+          const txtIrmao = el.nextSibling.nodeValue;
+          if (/^\s*[-–—:]\s*(não informada|undefined|null)\s*$/i.test(txtIrmao)) {
+            el.nextSibling.nodeValue = ` — ${descricao}`;
+            return;
+          }
+        }
+
+        // Evita inserir duas vezes no mesmo elemento
+        if (el.getAttribute('data-cnae-desc-ok') === '1') return;
+        el.setAttribute('data-cnae-desc-ok', '1');
+
+        const spanDesc = document.createElement('span');
+        spanDesc.className = 'cnae-atividade-inline';
+        spanDesc.textContent = ` — ${descricao}`;
+
+        // Se for um badge pequeno, insere logo após o badge (ou dentro se estiver ao lado de outros badges)
+        if (el.classList.contains('badge') && el.parentElement && el.parentElement.querySelectorAll('.badge').length > 1) {
+          el.appendChild(spanDesc);
+        } else {
+          el.insertAdjacentElement('afterend', spanDesc);
+        }
+        return;
       }
-    } else if (modoVisualizacaoAtual === 'frequencia') {
-      htmlTabela = `
-        <div class="table-responsive" style="max-height: 460px; overflow-y: auto;">
-          <table class="table table-hover table-bordered tabela-cnaes-lote mb-0">
-            <thead class="sticky-top">
-              <tr>
-                <th style="width: 130px;">Código CNAE</th>
-                <th>Atividade do CNAE (Descrição Oficial)</th>
-                <th style="width: 150px;" class="text-center">Frequência</th>
-                <th style="width: 34%;">CNPJs que Possuem a Atividade</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${todosCnaesUnicos.map((item) => `
-                <tr class="${item.presenteEmTodos && totalEmpresas > 1 ? 'table-success' : ''}">
-                  <td>
-                    <span class="badge ${item.presenteEmTodos ? 'bg-success' : 'bg-secondary'} badge-cnae-codigo">
-                      ${escaparHtml(item.codigoFormatado)}
-                    </span>
-                    <div class="text-muted" style="font-size: 0.72rem;">${escaparHtml(item.codigo)}</div>
-                  </td>
-                  <td class="fw-semibold text-dark">${escaparHtml(item.descricao)}</td>
-                  <td class="text-center">
-                    <span class="badge ${item.presenteEmTodos ? 'bg-success' : 'bg-dark'}">
-                      ${item.qtdEmpresas} de ${item.totalEmpresas} (${item.percentual}%)
-                    </span>
-                  </td>
-                  <td>
-                    ${item.ocorrencias.map((oc) => `
-                      <span class="chip-empresa-cnae" title="${escaparHtml(oc.razaoSocial)}">
-                        <strong>${escaparHtml(oc.cnpjFormatado)}</strong>
-                        <span class="${oc.tipo === 'Principal' ? 'tipo-p' : 'tipo-s'}">(${oc.tipo === 'Principal' ? 'P' : 'S'})</span>
-                      </span>
-                    `).join('')}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    } else {
-      // Modo: 'por_cnpj' (Todas as CNAEs de cada CNPJ)
-      const linhasPorCnpj = [];
-      empresas.forEach((emp) => {
-        emp.cnaes.forEach((cnae) => {
-          if (filtroTipoCnae === 'principal' && cnae.tipo !== 'Principal') return;
-          linhasPorCnpj.push({
-            cnpjFormatado: emp.cnpjFormatado,
-            razaoSocial: emp.razaoSocial,
-            tipo: cnae.tipo,
-            codigo: cnae.codigo,
-            codigoFormatado: cnae.codigoFormatado,
-            descricao: cnae.descricao
+
+      // Caso B: Nós de texto que contêm o código CNAE seguido ou não de texto sem a descrição
+      el.childNodes.forEach((node) => {
+        if (node.nodeType !== Node.TEXT_NODE) return;
+        let valorTexto = node.nodeValue;
+        if (!valorTexto || !/\d/.test(valorTexto)) return;
+
+        // Substitui placeholders como "00.00-0-00 - Não informada"
+        valorTexto = valorTexto.replace(
+          /(\b\d{2}\.?\d{2}-\d(?:-|/)\d{2}\b|\b\d{7}\b)(\s*[-–—:]\s*)(não informada|undefined|sem descrição)/gi,
+          (match, cod, sep) => {
+            const desc = obterDescricaoCnae(cod);
+            return desc ? `${cod}${sep}${desc}` : match;
+          }
+        );
+
+        // Adiciona a descrição ao lado de CNAEs formatados que ainda não possuem descrição na mesma frase
+        const textoLinhaNorm = normalizarTextoComparacao(el.textContent);
+        valorTexto = valorTexto.replace(regexCnaeFormatado, (match, cod) => {
+          const desc = obterDescricaoCnae(cod);
+          if (!desc) return match;
+          const trecho = normalizarTextoComparacao(desc).slice(0, 18);
+          if (trecho && textoLinhaNorm.includes(trecho)) return match;
+          return `${cod} — ${desc}`;
+        });
+
+        // Adiciona a descrição ao lado de CNAEs de 7 dígitos (quando em contexto de CNAE)
+        if (/cnae|secund|principal|atividad|industri/i.test(el.textContent + ' ' + (el.parentElement ? el.parentElement.textContent : ''))) {
+          valorTexto = valorTexto.replace(regexCnaeSeteDigitos, (match, cod) => {
+            const desc = obterDescricaoCnae(cod);
+            if (!desc) return match;
+            const trecho = normalizarTextoComparacao(desc).slice(0, 18);
+            if (trecho && textoLinhaNorm.includes(trecho)) return match;
+            return `${cod} — ${desc}`;
           });
-        });
-      });
+        }
 
-      htmlTabela = `
-        <div class="table-responsive" style="max-height: 460px; overflow-y: auto;">
-          <table class="table table-hover table-bordered tabela-cnaes-lote mb-0">
-            <thead class="sticky-top">
-              <tr>
-                <th style="width: 155px;">CNPJ</th>
-                <th style="width: 24%;">Razão Social</th>
-                <th style="width: 110px;" class="text-center">Tipo</th>
-                <th style="width: 130px;">Código CNAE</th>
-                <th>Atividade do CNAE (Descrição Oficial)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${linhasPorCnpj.map((row) => `
-                <tr>
-                  <td class="fw-bold text-nowrap">${escaparHtml(row.cnpjFormatado)}</td>
-                  <td class="small">${escaparHtml(row.razaoSocial)}</td>
-                  <td class="text-center">
-                    <span class="badge ${row.tipo === 'Principal' ? 'bg-primary' : 'bg-secondary'}">
-                      ${escaparHtml(row.tipo)}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge bg-light text-dark border badge-cnae-codigo">${escaparHtml(row.codigoFormatado)}</span>
-                  </td>
-                  <td class="fw-semibold text-dark">${escaparHtml(row.descricao)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    container.innerHTML = `
-      <div class="card border-primary shadow-sm mb-4">
-        <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-diagram-3-fill fs-5"></i>
-            <div>
-              <h6 class="mb-0 fw-bold">Matriz de CNAEs &amp; Atividades Econômicas dos CNPJs Consultados</h6>
-              <small class="opacity-75">
-                ${totalEmpresas} CNPJ(s) analisado(s) | ${todosCnaesUnicos.length} CNAE(s) distinta(s) | <strong>${cnaesEmComum.length} presente(s) em 100% dos CNPJs</strong>
-              </small>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-sm btn-light fw-semibold" id="btnCopiarCnaesTsv" title="Copiar tabela de CNAEs para colar no Excel">
-              <i class="bi bi-clipboard-check me-1"></i>Copiar CNAEs
-            </button>
-            <button type="button" class="btn btn-sm btn-warning fw-semibold" id="btnExportarCnaesExcel" title="Baixar planilha Excel com as CNAEs e Atividades">
-              <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar CNAEs (.xlsx)
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-light" id="btnFecharPainelCnaes" title="Ocultar painel">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <!-- Controles de Modo e Filtro -->
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div class="btn-group btn-group-sm" role="group">
-              <button type="button" class="btn ${modoVisualizacaoAtual === 'comuns' ? 'btn-primary' : 'btn-outline-primary'}" data-modo="comuns">
-                <i class="bi bi-intersect me-1"></i>Presentes em TODOS os CNPJs (${cnaesEmComum.length})
-              </button>
-              <button type="button" class="btn ${modoVisualizacaoAtual === 'frequencia' ? 'btn-primary' : 'btn-outline-primary'}" data-modo="frequencia">
-                <i class="bi bi-bar-chart-steps me-1"></i>Consolidado por CNAE (${todosCnaesUnicos.length})
-              </button>
-              <button type="button" class="btn ${modoVisualizacaoAtual === 'por_cnpj' ? 'btn-primary' : 'btn-outline-primary'}" data-modo="por_cnpj">
-                <i class="bi bi-list-ul me-1"></i>Todas as CNAEs por CNPJ
-              </button>
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-              <label class="small text-muted fw-semibold mb-0">Considerar:</label>
-              <select class="form-select form-select-sm" id="selectFiltroTipoCnae" style="width: auto;">
-                <option value="todos" ${filtroTipoCnae === 'todos' ? 'selected' : ''}>Principal + Secundários</option>
-                <option value="principal" ${filtroTipoCnae === 'principal' ? 'selected' : ''}>Apenas CNAE Principal</option>
-              </select>
-            </div>
-          </div>
-
-          ${htmlTabela}
-        </div>
-      </div>
-    `;
-
-    // Eventos dos controles internos do painel
-    container.querySelectorAll('[data-modo]').forEach((btn) => {
-      btn.addEventListener('click', function () {
-        modoVisualizacaoAtual = this.getAttribute('data-modo');
-        renderizarPainelCnaes();
-      });
-    });
-
-    const selectTipo = document.getElementById('selectFiltroTipoCnae');
-    if (selectTipo) {
-      selectTipo.addEventListener('change', function () {
-        filtroTipoCnae = this.value;
-        renderizarPainelCnaes();
-      });
-    }
-
-    const btnFechar = document.getElementById('btnFecharPainelCnaes');
-    if (btnFechar) {
-      btnFechar.addEventListener('click', () => {
-        container.style.display = 'none';
-      });
-    }
-
-    const btnCopiar = document.getElementById('btnCopiarCnaesTsv');
-    if (btnCopiar) {
-      btnCopiar.addEventListener('click', copiarCnaesParaTransferencia);
-    }
-
-    const btnExcel = document.getElementById('btnExportarCnaesExcel');
-    if (btnExcel) {
-      btnExcel.addEventListener('click', exportarCnaesParaExcel);
-    }
-  }
-
-  // 6. Exportação (Copiar TSV e Baixar Excel com abas de Comuns, Frequência e Por CNPJ)
-  function copiarCnaesParaTransferencia() {
-    const { empresas, todosCnaesUnicos, cnaesEmComum } = processarAnaliseDeCnaes();
-    const linhas = [];
-
-    if (modoVisualizacaoAtual === 'por_cnpj') {
-      linhas.push(['CNPJ', 'Razão Social', 'Tipo CNAE', 'Código CNAE', 'Código Limpo', 'Atividade do CNAE (Descrição)'].join('\t'));
-      empresas.forEach((emp) => {
-        emp.cnaes.forEach((cnae) => {
-          if (filtroTipoCnae === 'principal' && cnae.tipo !== 'Principal') return;
-          linhas.push([emp.cnpjFormatado, emp.razaoSocial, cnae.tipo, cnae.codigoFormatado, cnae.codigo, cnae.descricao].join('\t'));
-        });
-      });
-    } else {
-      const fonte = modoVisualizacaoAtual === 'comuns' ? cnaesEmComum : todosCnaesUnicos;
-      linhas.push(['Código CNAE', 'Código Limpo', 'Atividade do CNAE (Descrição)', 'Qtd CNPJs', 'Total CNPJs', 'Percentual', 'CNPJs e Vínculo'].join('\t'));
-      fonte.forEach((item) => {
-        const cnpjsStr = item.ocorrencias.map((o) => `${o.cnpjFormatado} (${o.tipo})`).join('; ');
-        linhas.push([
-          item.codigoFormatado,
-          item.codigo,
-          item.descricao,
-          item.qtdEmpresas,
-          item.totalEmpresas,
-          `${item.percentual}%`,
-          cnpjsStr
-        ].join('\t'));
-      });
-    }
-
-    navigator.clipboard.writeText(linhas.join('\n')).then(() => {
-      const btn = document.getElementById('btnCopiarCnaesTsv');
-      if (btn) {
-        const htmlOriginal = btn.innerHTML;
-        btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>Copiado!';
-        btn.classList.replace('btn-light', 'btn-success');
-        setTimeout(() => {
-          btn.innerHTML = htmlOriginal;
-          btn.classList.replace('btn-success', 'btn-light');
-        }, 2000);
-      }
-    });
-  }
-
-  function exportarCnaesParaExcel() {
-    const { empresas, todosCnaesUnicos, cnaesEmComum } = processarAnaliseDeCnaes();
-    if (typeof XLSX === 'undefined') {
-      copiarCnaesParaTransferencia();
-      alert('Biblioteca XLSX não encontrada. Os dados foram copiados para sua área de transferência!');
-      return;
-    }
-
-    const wb = XLSX.utils.book_new();
-
-    // Aba 1: CNAEs em Comum (100% dos CNPJs)
-    const dadosComuns = cnaesEmComum.map((item) => ({
-      'Código CNAE': item.codigoFormatado,
-      'Código (7 Dígitos)': item.codigo,
-      'Atividade do CNAE (Descrição Oficial)': item.descricao,
-      'Presença': `${item.qtdEmpresas} de ${item.totalEmpresas} (100%)`,
-      'CNPJs e Vínculo': item.ocorrencias.map((o) => `${o.cnpjFormatado} (${o.tipo})`).join(' | ')
-    }));
-    const wsComuns = XLSX.utils.json_to_sheet(
-      dadosComuns.length > 0
-        ? dadosComuns
-        : [{ Aviso: 'Nenhuma CNAE esteve presente simultaneamente em 100% dos CNPJs consultados.' }]
-    );
-    XLSX.utils.book_append_sheet(wb, wsComuns, 'CNAEs_Em_Todos_CNPJs');
-
-    // Aba 2: Consolidado por Frequência
-    const dadosFreq = todosCnaesUnicos.map((item) => ({
-      'Código CNAE': item.codigoFormatado,
-      'Código (7 Dígitos)': item.codigo,
-      'Atividade do CNAE (Descrição Oficial)': item.descricao,
-      'Qtd CNPJs': item.qtdEmpresas,
-      'Total CNPJs do Lote': item.totalEmpresas,
-      'Frequência (%)': `${item.percentual}%`,
-      'Presente em Todos?': item.presenteEmTodos ? 'SIM' : 'NÃO',
-      'CNPJs e Vínculo': item.ocorrencias.map((o) => `${o.cnpjFormatado} (${o.tipo})`).join(' | ')
-    }));
-    const wsFreq = XLSX.utils.json_to_sheet(dadosFreq);
-    XLSX.utils.book_append_sheet(wb, wsFreq, 'Consolidado_Por_CNAE');
-
-    // Aba 3: Todas as CNAEs por CNPJ
-    const dadosPorCnpj = [];
-    empresas.forEach((emp) => {
-      emp.cnaes.forEach((cnae) => {
-        dadosPorCnpj.push({
-          'CNPJ': emp.cnpjFormatado,
-          'Razão Social': emp.razaoSocial,
-          'Tipo de CNAE': cnae.tipo,
-          'Código CNAE': cnae.codigoFormatado,
-          'Código (7 Dígitos)': cnae.codigo,
-          'Atividade do CNAE (Descrição Oficial)': cnae.descricao
-        });
-      });
-    });
-    const wsPorCnpj = XLSX.utils.json_to_sheet(dadosPorCnpj);
-    XLSX.utils.book_append_sheet(wb, wsPorCnpj, 'Todos_CNAEs_Por_CNPJ');
-
-    const dataStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `Analise_CNAEs_Atividades_FIRJAN_${dataStr}.xlsx`);
-  }
-
-  // 7. Injeção dos Botões e do Container na Interface Existente
-  function inicializarInterfaceCnaes() {
-    if (document.getElementById('btnMostrarCnaesLote')) return;
-
-    // A) Cria o container do painel acima da lista de empresas consultadas
-    const resultsContainer = document.getElementById('resultsContainer') || document.getElementById('resultBody');
-    if (resultsContainer && resultsContainer.parentElement) {
-      const wrapper = document.createElement('div');
-      wrapper.id = 'painelCnaesLoteWrapper';
-      wrapper.style.display = 'none';
-      resultsContainer.parentElement.insertBefore(wrapper, resultsContainer);
-    }
-
-    // Função de abertura/atualização do painel
-    const abrirPainelCnaes = () => {
-      const wrapper = document.getElementById('painelCnaesLoteWrapper');
-      if (!wrapper) return;
-      wrapper.style.display = 'block';
-      renderizarPainelCnaes();
-      wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    };
-
-    // B) Adiciona botão na seção "Exportação e Relatórios" (ao lado do btnExportarExcel)
-    const btnExportarExcel = document.getElementById('btnExportarExcel');
-    if (btnExportarExcel && btnExportarExcel.parentElement) {
-      const btnLateral = document.createElement('button');
-      btnLateral.type = 'button';
-      btnLateral.id = 'btnMostrarCnaesLote';
-      btnLateral.className = 'btn btn-primary w-100 fw-semibold mt-2 shadow-sm';
-      btnLateral.innerHTML = '<i class="bi bi-diagram-3-fill me-2"></i>Mostrar CNAEs Presentes em Todos os CNPJs';
-      btnLateral.addEventListener('click', abrirPainelCnaes);
-      btnExportarExcel.parentElement.appendChild(btnLateral);
-    }
-
-    // C) Adiciona botão rápido ao lado do badge "totalEmpresasBadge" no topo da coluna direita
-    const badgeTotal = document.getElementById('totalEmpresasBadge');
-    if (badgeTotal && badgeTotal.parentElement) {
-      const divAcoesTopo = document.createElement('div');
-      divAcoesTopo.className = 'd-flex align-items-center gap-2';
-      badgeTotal.parentElement.insertBefore(divAcoesTopo, badgeTotal);
-      divAcoesTopo.appendChild(badgeTotal);
-
-      const btnTopo = document.createElement('button');
-      btnTopo.type = 'button';
-      btnTopo.id = 'btnMostrarCnaesTopo';
-      btnTopo.className = 'btn btn-sm btn-outline-primary fw-semibold';
-      btnTopo.innerHTML = '<i class="bi bi-intersect me-1"></i>CNAEs &amp; Atividades do Lote';
-      btnTopo.addEventListener('click', abrirPainelCnaes);
-      divAcoesTopo.insertBefore(btnTopo, badgeTotal);
-    }
-
-    // D) Atualiza o painel automaticamente caso esteja aberto enquanto novos CNPJs são processados
-    if (resultsContainer) {
-      const observer = new MutationObserver(() => {
-        const wrapper = document.getElementById('painelCnaesLoteWrapper');
-        if (wrapper && wrapper.style.display !== 'none') {
-          renderizarPainelCnaes();
+        if (valorTexto !== node.nodeValue) {
+          node.nodeValue = valorTexto;
         }
       });
-      observer.observe(resultsContainer, { childList: true });
-    }
+    });
+  }
+
+  // 5. Inicialização e Monitoramento em Tempo Real (MutationObserver)
+  function iniciarMonitoramentoAutomatico() {
+    carregarDaBaseInterna();
+    carregarDicionarioIbge();
+
+    const alvo =
+      document.getElementById('resultsContainer') ||
+      document.getElementById('resultBody') ||
+      document.body;
+
+    let timerDebounce = null;
+    const observer = new MutationObserver(() => {
+      clearTimeout(timerDebounce);
+      timerDebounce = setTimeout(aplicarDescricaoNasCnaesDaTela, 40);
+    });
+
+    observer.observe(alvo, {
+      childList: true,
+      subtree: true
+    });
+
+    aplicarDescricaoNasCnaesDaTela();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarInterfaceCnaes);
+    document.addEventListener('DOMContentLoaded', iniciarMonitoramentoAutomatico);
   } else {
-    inicializarInterfaceCnaes();
+    iniciarMonitoramentoAutomatico();
   }
 })();
 </script>
