@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Consultor Corporativo | Triagem & Enquadramento Sindical FIRJAN</title>
-  <!-- Bootstrap 5.3 -->
+  <!-- Bootstrap 5.3 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome 6.4 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -103,8 +103,16 @@
 
   <div class="container mt-4 mb-5">
     <ul class="nav nav-tabs mb-4 no-print" id="mainTabs" role="tablist">
-      <li class="nav-item"><button class="nav-link active" onclick="mudarAba('pane-triagem')"><i class="fa-solid fa-magnifying-glass-chart me-1"></i> Triagem de CNPJs</button></li>
-      <li class="nav-item"><button class="nav-link" onclick="mudarAba('pane-regras')"><i class="fa-solid fa-scale-balanced me-1"></i> Legislação Associativa</button></li>
+      <li class="nav-item">
+        <button type="button" class="nav-link active" id="tab-triagem" onclick="mudarAba('pane-triagem')">
+          <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Triagem de CNPJs
+        </button>
+      </li>
+      <li class="nav-item">
+        <button type="button" class="nav-link" id="tab-regras" onclick="mudarAba('pane-regras')">
+          <i class="fa-solid fa-scale-balanced me-1"></i> Legislação Associativa
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content">
@@ -119,21 +127,29 @@
                 <span id="cnpjCountBadge" class="badge bg-primary rounded-pill">0 inserido(s)</span>
               </div>
               <div class="card-body p-4">
-                <textarea id="cnpjInput" class="form-control font-monospace mb-3 border-secondary-subtle" rows="5" placeholder="Cole os CNPJs aqui (um por linha)..." style="font-size: 0.9rem;"></textarea>
+                <textarea id="cnpjInput" class="form-control font-monospace mb-3 border-secondary-subtle" rows="5" placeholder="Cole os CNPJs aqui (um por linha)..." style="font-size: 0.9rem;" oninput="atualizarContadorCNPJ()"></textarea>
                 <div class="d-grid gap-2 mb-4">
-                  <button id="btnProcessar" class="btn btn-consultor py-2" onclick="executarProcessamento()">
+                  <button type="button" id="btnProcessar" class="btn btn-consultor py-2" onclick="executarProcessamento()">
                     <i class="fa-solid fa-bolt me-2"></i> Processar Enquadramento
                   </button>
                   <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary btn-sm w-50" onclick="carregarExemplos()"><i class="fa-solid fa-file-import me-1"></i> Exemplos</button>
-                    <button class="btn btn-outline-danger btn-sm w-50" onclick="limparTudo()"><i class="fa-solid fa-trash me-1"></i> Limpar</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-50" onclick="carregarExemplos()">
+                      <i class="fa-solid fa-file-import me-1"></i> Exemplos
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-50" onclick="limparTudo()">
+                      <i class="fa-solid fa-trash me-1"></i> Limpar
+                    </button>
                   </div>
                 </div>
                 
                 <div class="fw-bold text-secondary small mb-2 text-uppercase"><i class="fa-solid fa-download me-1"></i> Relatórios e Exportação</div>
                 <div class="d-grid gap-2">
-                  <button class="btn btn-success btn-sm text-start py-2 fw-semibold" onclick="exportarExcel()"><i class="fa-solid fa-file-excel me-2"></i> Exportar Excel (.xlsx)</button>
-                  <button class="btn btn-outline-primary btn-sm text-start fw-semibold" onclick="window.print()"><i class="fa-solid fa-print me-2"></i> Imprimir em PDF</button>
+                  <button type="button" class="btn btn-success btn-sm text-start py-2 fw-semibold" onclick="exportarExcel()">
+                    <i class="fa-solid fa-file-excel me-2"></i> Exportar Excel (.xlsx)
+                  </button>
+                  <button type="button" class="btn btn-outline-primary btn-sm text-start fw-semibold" onclick="window.print()">
+                    <i class="fa-solid fa-print me-2"></i> Imprimir em PDF
+                  </button>
                 </div>
               </div>
             </div>
@@ -177,6 +193,9 @@
     </div>
   </div>
 
+  <!-- Bootstrap 5.3 JS Bundle (Necessário para funcionamento dos Acordeões) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
   // =========================================================================
   // 1. DICIONÁRIO OFICIAL IBGE E MOTOR DE EXCEÇÕES FIRJAN
@@ -190,10 +209,15 @@
       const res = await fetch('https://servicodados.ibge.gov.br/api/v2/cnae/subclasses');
       if (res.ok) {
         const dados = await res.json();
-        dados.forEach(item => MAPA_CNAES_IBGE.set(item.id, item.descricao));
+        dados.forEach(item => {
+          const idNorm = String(item.id).replace(/\D/g, '').padStart(7, '0');
+          MAPA_CNAES_IBGE.set(idNorm, item.descricao);
+        });
         ibgeCarregado = true;
       }
-    } catch(e) { console.warn("Aviso: Falha ao carregar IBGE, usará descrições da BrasilAPI."); }
+    } catch(e) {
+      console.warn("Aviso: Falha ao carregar IBGE, usará descrições da BrasilAPI.");
+    }
   }
 
   // Mapa de Municípios do Rio de Janeiro
@@ -207,7 +231,7 @@
     SUL: ["BARRADOPIRAI", "BARRAMANSA", "ENGENHEIROPAULODEOFRONTIN", "ITATIAIA", "MENDES", "MIGUELPEREIRA", "PATYDOALFERES", "PINHEIRAL", "PIRAI", "PORTOREAL", "QUATIS", "RESENDE", "RIOCLARO", "RIODASFLORES", "VALENCA", "VASSOURAS", "VOLTAREDONDA", "ANGRADOSREIS", "PARATY", "PARATI"]
   };
 
-  // 110 Casos de Exceção da Tabela FIRJAN (Indústria s/ Sind e Comércio c/ Sind)
+  // Casos de Exceção da Tabela FIRJAN (Indústria s/ Sind e Comércio c/ Sind)
   const EXCECOES_FIRJAN = {
     "4721102": "Sindicato de Panificação", "1091100": "Sindicato de Panificação", "1091101": "Sindicato de Panificação", "1091102": "Sindicato de Panificação", 
     "5911101": "SICAV", "5911102": "SICAV", "5911199": "SICAV", "5912001": "SICAV", "5912002": "SICAV", "5912099": "SICAV", "5920100": "SICAV", "6022501": "SICAV",
@@ -230,8 +254,6 @@
   }
 
   function buscarSindicatoExato(cnae, munNorm, ufNorm) {
-    const div = cnae.substring(0, 2);
-    
     // Nacionais
     if (cnae.startsWith("05")) return { nome: "Sindicato Nacional da Indústria da Extração de Carvão - SNIEC", regra: "Nacional" };
     if (/^(0710|0721|0723|0729|0990401)/.test(cnae)) return { nome: "Sindicato Nacional da Indústria da Extração do Ferro e Metais Básicos - SINFERBASE", regra: "Nacional" };
@@ -240,6 +262,11 @@
     if (/^(3011|3012|33171)/.test(cnae)) return { nome: "Sind. Nacional da Ind. da Construção Naval - SINAVAL", regra: "Nacional" };
 
     if (ufNorm !== 'RJ') return null; 
+
+    // Exceções mapeadas diretamente (Panificação / SICAV)
+    if (EXCECOES_FIRJAN[cnae] && EXCECOES_FIRJAN[cnae] !== "Consultar") {
+      return { nome: EXCECOES_FIRJAN[cnae], regra: "Enquadramento Especial FIRJAN" };
+    }
 
     // Estaduais e Regionais (RJ)
     if (/^(41|4292|4299|433|439|711)/.test(cnae)) { 
@@ -272,8 +299,10 @@
   }
 
   function avaliarCnae(cnaeBruto, descApi, municipio, uf) {
-    const cnae7 = String(cnaeBruto).replace(/\D/g, '').padStart(7, '0');
-    if (cnae7.length < 7 || cnae7 === '0000000') return { desc: 'CNAE Inválida', situacao: 'Outros', sindicato: '-', regra: 'Dados insuficientes', badge: 'bg-secondary' };
+    const cnae7 = String(cnaeBruto || '').replace(/\D/g, '').padStart(7, '0');
+    if (cnae7.length < 7 || cnae7 === '0000000') {
+      return { cnae: '0000000', desc: 'CNAE Inválida', isIndustrial: false, situacao: 'Outros', sindicato: '-', regra: 'Dados insuficientes', badge: 'bg-secondary' };
+    }
 
     const ufNorm = normalizarTexto(uf);
     const munNorm = normalizarTexto(municipio);
@@ -300,7 +329,7 @@
   }
 
   // =========================================================================
-  // INTEGRAÇÃO DE API E RENDERIZAÇÃO NA TELA
+  // 2. INTEGRAÇÃO DE API E RENDERIZAÇÃO NA TELA
   // =========================================================================
 
   let arrayResultadosGlobais = [];
@@ -329,12 +358,12 @@
       if (res2.ok) {
         const d = await res2.json();
         return {
-          razao_social: d.razao_social, nome_fantasia: d.estabelecimento.nome_fantasia || 'Não informado',
-          descricao_situacao_cadastral: d.estabelecimento.situacao_cadastral, porte: d.porte?.descricao,
-          logradouro: d.estabelecimento.logradouro, numero: d.estabelecimento.numero, complemento: d.estabelecimento.complemento,
-          bairro: d.estabelecimento.bairro, municipio: d.estabelecimento.cidade.nome, uf: d.estabelecimento.estado.sigla, cep: d.estabelecimento.cep,
-          cnae_fiscal: d.estabelecimento.atividade_principal.subclasse, cnae_fiscal_descricao: d.estabelecimento.atividade_principal.descricao,
-          cnaes_secundarios: d.estabelecimento.atividades_secundarias.map(s => ({ codigo: s.subclasse, descricao: s.descricao })),
+          razao_social: d.razao_social, nome_fantasia: d.estabelecimento?.nome_fantasia || 'Não informado',
+          descricao_situacao_cadastral: d.estabelecimento?.situacao_cadastral || 'ATIVA', porte: d.porte?.descricao,
+          logradouro: d.estabelecimento?.logradouro, numero: d.estabelecimento?.numero, complemento: d.estabelecimento?.complemento,
+          bairro: d.estabelecimento?.bairro, municipio: d.estabelecimento?.cidade?.nome, uf: d.estabelecimento?.estado?.sigla, cep: d.estabelecimento?.cep,
+          cnae_fiscal: d.estabelecimento?.atividade_principal?.subclasse, cnae_fiscal_descricao: d.estabelecimento?.atividade_principal?.descricao,
+          cnaes_secundarios: (d.estabelecimento?.atividades_secundarias || []).map(s => ({ codigo: s.subclasse, descricao: s.descricao })),
           qsa: d.socios ? d.socios.map(s => s.nome).filter(Boolean) : []
         };
       }
@@ -343,22 +372,30 @@
   }
 
   async function executarProcessamento() {
-    if (!ibgeCarregado) await carregarDicionarioIbge();
-    
     const texto = document.getElementById('cnpjInput').value;
-    const cnpjs = texto.split(/[\n,;]+/).map(c => c.replace(/\D/g, '')).filter(c => c.length === 14);
+    const cnpjs = [...new Set(texto.split(/[\n,;]+/).map(c => c.replace(/\D/g, '')).filter(c => c.length === 14))];
 
-    if (cnpjs.length === 0) { alert("Insira ao menos 1 CNPJ válido com 14 dígitos numéricos."); return; }
+    if (cnpjs.length === 0) {
+      alert("Insira ao menos 1 CNPJ válido com 14 dígitos numéricos.");
+      return;
+    }
+
+    const btn = document.getElementById('btnProcessar');
+    btn.disabled = true;
+
+    if (!ibgeCarregado) await carregarDicionarioIbge();
 
     document.getElementById('resultsContainer').innerHTML = '';
     arrayResultadosGlobais = [];
     document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('progressText').innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Analisando atividades e território...`;
+    document.getElementById('progressBar').style.width = '0%';
 
     for (let i = 0; i < cnpjs.length; i++) {
       const cnpj = cnpjs[i];
       const formatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-      document.getElementById('progressBar').style.width = Math.round(((i+1)/cnpjs.length)*100) + '%';
-      document.getElementById('progressCount').innerText = `${i+1}/${cnpjs.length}`;
+      document.getElementById('progressBar').style.width = Math.round(((i + 1) / cnpjs.length) * 100) + '%';
+      document.getElementById('progressCount').innerText = `${i + 1}/${cnpjs.length}`;
 
       try {
         const data = await buscarCNPJ(cnpj);
@@ -367,33 +404,43 @@
         
         const cepRaw = String(data.cep || '').replace(/\D/g, '');
         const cepFormatado = cepRaw.length === 8 ? cepRaw.replace(/^(\d{5})(\d{3})$/, "$1-$2") : (data.cep || 'Não informado');
-        const endComp = `${data.logradouro \vert{}\vert{} 'Rua não inf.'}, ${data.numero || 'S/N'} ${data.complemento ? ' - ' + data.complemento : ''}<br>${data.bairro || 'Bairro não inf.'}, ${data.municipio \vert{}\vert{} ''} -${data.uf || ''}`;
+        const endComp = `${data.logradouro || 'Rua não inf.'}, ${data.numero || 'S/N'} ${data.complemento ? ' - ' + data.complemento : ''}<br>${data.bairro || 'Bairro não inf.'}, ${data.municipio || ''} - ${data.uf || ''}`;
         
         const sociosStr = (data.qsa && data.qsa.length > 0) ? data.qsa.join(' <span class="text-black-50 fw-normal mx-1">|</span> ') : 'Nenhum sócio identificado no QSA';
 
         const empresa = {
           id: i, cnpj: formatado, razao: data.razao_social, fantasia: data.nome_fantasia,
           situacao: data.descricao_situacao_cadastral, porte: data.porte || 'DEMAIS',
+          municipio: data.municipio || '', uf: data.uf || '',
           endComp: endComp, cep: cepFormatado, sociosStr: sociosStr,
+          sociosRaw: (data.qsa && data.qsa.length > 0) ? data.qsa.join(' | ') : 'Nenhum sócio identificado',
           princ: avPrinc, secs: avSecs, isInd: avPrinc.isIndustrial || avSecs.some(s => s.isIndustrial)
         };
         arrayResultadosGlobais.push(empresa);
         renderCard(empresa);
       } catch(err) {
-        document.getElementById('resultsContainer').innerHTML += `<div class="company-card p-4 border-danger"><div class="text-danger fw-bold fs-5"><i class="fa-solid fa-triangle-exclamation me-2"></i>${formatado}</div><div class="text-muted mt-1">${err.message}</div></div>`;
+        document.getElementById('resultsContainer').insertAdjacentHTML('beforeend', `
+          <div class="company-card p-4 border-danger">
+            <div class="text-danger fw-bold fs-5"><i class="fa-solid fa-triangle-exclamation me-2"></i>${formatado}</div>
+            <div class="text-muted mt-1">${err.message}</div>
+          </div>
+        `);
       }
     }
     
-    document.getElementById('progressText').innerHTML = `<i class="fa-solid fa-check text-success"></i> Triagem Finalizada com Sucesso!`;
+    document.getElementById('progressText').innerHTML = `<i class="fa-solid fa-check text-success me-1"></i> Triagem Finalizada com Sucesso!`;
     document.getElementById('totalEmpresasBadge').innerText = `${arrayResultadosGlobais.length} empresa(s)`;
+    btn.disabled = false;
   }
 
   function renderCard(emp) {
+    const cnaePrincFormatada = emp.princ.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3");
+
     const linhasSec = emp.secs.map(s => `
       <tr>
         <td><span class="badge bg-light text-dark border font-monospace">${s.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")}</span></td>
         <td class="text-wrap" style="min-width: 200px;"><span class="text-dark fw-semibold">${s.desc}</span></td>
-        <td><strong class="${s.situacao==='Enquadrado'?'text-success':'text-muted'}">${s.sindicato}</strong></td>
+        <td><strong class="${s.situacao === 'Enquadrado' ? 'text-success' : 'text-muted'}">${s.sindicato}</strong></td>
         <td><span class="badge ${s.badge}">${s.situacao}</span></td>
       </tr>
     `).join('');
@@ -405,7 +452,225 @@
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="font-monospace fw-bold fs-5 text-primary">${emp.cnpj}</span>
               <span class="badge bg-white text-dark border">${emp.porte}</span>
-              <span class="badge ${emp.situacao==='ATIVA'?'bg-success':'bg-danger'}">${emp.situacao}</span>
+              <span class="badge ${emp.situacao === 'ATIVA' ? 'bg-success' : 'bg-danger'}">${emp.situacao}</span>
             </div>
             <h5 class="fw-bold mb-1 text-break text-uppercase" style="color: #0f172a;">${emp.razao}</h5>
-            <div class="small text-muted"><i class="fa-regular fa-id-card me-1"></i>Nome Fantasia: <strong class="text-dark">${
+            <div class="small text-muted"><i class="fa-regular fa-id-card me-1"></i>Nome Fantasia: <strong class="text-dark">${emp.fantasia}</strong></div>
+          </div>
+          <div class="flex-shrink-0">
+            ${emp.isInd
+              ? `<span class="badge-industry"><i class="fa-solid fa-industry"></i> Perfil Industrial</span>`
+              : `<span class="badge-commercial"><i class="fa-solid fa-store"></i> Comércio / Serviços</span>`}
+          </div>
+        </div>
+
+        <div class="company-body">
+          <div class="row g-3 mb-3">
+            <!-- Atividade Principal e Dados Cadastrais -->
+            <div class="col-12 col-md-6">
+              <div class="box-info d-flex flex-column justify-content-between">
+                <div>
+                  <div class="small fw-bold text-secondary text-uppercase mb-2">
+                    <i class="fa-solid fa-briefcase me-1 text-primary"></i> Atividade Principal (Preponderante)
+                  </div>
+                  <div class="mb-2">
+                    <span class="badge bg-primary font-monospace me-1">${cnaePrincFormatada}</span>
+                    <span class="fw-bold text-dark">${emp.princ.desc}</span>
+                  </div>
+                </div>
+                <hr class="my-2 text-secondary opacity-25">
+                <div class="small text-secondary">
+                  <div class="mb-2">
+                    <i class="fa-solid fa-location-dot me-1 text-primary"></i> <strong>Localização:</strong><br>
+                    ${emp.endComp} <span class="badge bg-light text-dark border ms-1">CEP: ${emp.cep}</span>
+                  </div>
+                  <div>
+                    <i class="fa-solid fa-users me-1 text-primary"></i> <strong>Quadro Societário (QSA):</strong><br>
+                    ${emp.sociosStr}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enquadramento Sindical Principal -->
+            <div class="col-12 col-md-6">
+              <div class="box-info-highlight d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-bold text-primary text-uppercase"><i class="fa-solid fa-scale-balanced me-1"></i> Sindicato Patronal (Principal)</span>
+                    <span class="badge ${emp.princ.badge}">${emp.princ.situacao}</span>
+                  </div>
+                  <div class="sindicato-titulo">${emp.princ.sindicato}</div>
+                </div>
+                <div class="regra-box">
+                  <div class="fw-bold text-dark"><i class="fa-solid fa-gavel me-1 text-primary"></i> Critério / Base Territorial:</div>
+                  <div class="text-secondary mt-1">${emp.princ.regra}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CNAEs Secundárias -->
+          ${emp.secs.length > 0 ? `
+            <div class="accordion" id="accSec_${emp.id}">
+              <div class="accordion-item border rounded-3 overflow-hidden">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed py-2 px-3 small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSec_${emp.id}" aria-expanded="false">
+                    <i class="fa-solid fa-layer-group me-2 text-primary"></i> Analisar CNAEs Secundárias (${emp.secs.length} atividade${emp.secs.length > 1 ? 's' : ''})
+                  </button>
+                </h2>
+                <div id="collapseSec_${emp.id}" class="accordion-collapse collapse" data-bs-parent="#accSec_${emp.id}">
+                  <div class="accordion-body p-0">
+                    <div class="table-responsive border-0">
+                      <table class="table table-secundarios table-hover align-middle">
+                        <thead>
+                          <tr>
+                            <th style="width: 110px;">CNAE</th>
+                            <th>Descrição da Atividade</th>
+                            <th>Sindicato Correspondente</th>
+                            <th style="width: 110px;">Situação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${linhasSec}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ` : `
+            <div class="small text-muted fst-italic"><i class="fa-solid fa-circle-info me-1"></i> Esta empresa não possui atividades secundárias cadastradas.</div>
+          `}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('resultsContainer').insertAdjacentHTML('beforeend', html);
+  }
+
+  // =========================================================================
+  // 3. FUNÇÕES DE NAVEGAÇÃO, UTILITÁRIOS E EXPORTAÇÃO EXCEL
+  // =========================================================================
+
+  function mudarAba(abaId) {
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+      pane.classList.remove('show', 'active');
+    });
+    const alvo = document.getElementById(abaId);
+    if (alvo) alvo.classList.add('show', 'active');
+
+    document.querySelectorAll('#mainTabs .nav-link').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(abaId)) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  function atualizarContadorCNPJ() {
+    const texto = document.getElementById('cnpjInput').value;
+    const validos = texto.split(/[\n,;]+/).map(c => c.replace(/\D/g, '')).filter(c => c.length === 14);
+    document.getElementById('cnpjCountBadge').innerText = `${validos.length} inserido(s)`;
+  }
+
+  function carregarExemplos() {
+    const exemplos = [
+      "33.000.167/0001-01", // Petrobras (RJ - Industrial)
+      "33.042.730/0001-04", // CSN (RJ - Siderurgia/Metalurgia)
+      "33.611.500/0001-19"  // Gerdau (RJ - Metalurgia)
+    ];
+    document.getElementById('cnpjInput').value = exemplos.join('\n');
+    atualizarContadorCNPJ();
+  }
+
+  function limparTudo() {
+    document.getElementById('cnpjInput').value = '';
+    atualizarContadorCNPJ();
+    arrayResultadosGlobais = [];
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('totalEmpresasBadge').innerText = '0 empresa(s)';
+    document.getElementById('resultsContainer').innerHTML = `
+      <div class="card-custom p-5 text-center text-muted" style="border: 2px dashed #cbd5e1;">
+        <i class="fa-solid fa-magnifying-glass-location fs-1 text-secondary opacity-50 mb-3 d-block"></i>
+        <h6 class="fw-bold text-dark">Aguardando CNPJs</h6>
+        <p class="small mb-0">Insira os dados no painel e inicie a triagem determinística.</p>
+      </div>
+    `;
+  }
+
+  function exportarExcel() {
+    if (arrayResultadosGlobais.length === 0) {
+      alert("Processe ao menos uma empresa antes de exportar a planilha Excel.");
+      return;
+    }
+
+    const linhasResumo = [];
+    const linhasDetalhadas = [];
+
+    arrayResultadosGlobais.forEach(emp => {
+      linhasResumo.push({
+        "CNPJ": emp.cnpj,
+        "Razão Social": emp.razao,
+        "Nome Fantasia": emp.fantasia,
+        "Situação": emp.situacao,
+        "Porte": emp.porte,
+        "Município": emp.municipio,
+        "UF": emp.uf,
+        "Perfil Industrial": emp.isInd ? "SIM" : "NÃO",
+        "CNAE Principal": emp.princ.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"),
+        "Descrição Principal": emp.princ.desc,
+        "Sindicato Patronal (Principal)": emp.princ.sindicato,
+        "Status Enquadramento": emp.princ.situacao,
+        "Critério / Base Territorial": emp.princ.regra,
+        "Qtd. CNAEs Secundárias": emp.secs.length,
+        "CEP": emp.cep,
+        "Quadro Societário (QSA)": emp.sociosRaw
+      });
+
+      // Linha da Principal na aba detalhada
+      linhasDetalhadas.push({
+        "CNPJ": emp.cnpj,
+        "Razão Social": emp.razao,
+        "Município/UF": `${emp.municipio}/${emp.uf}`,
+        "Tipo de Atividade": "PRINCIPAL",
+        "CNAE": emp.princ.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"),
+        "Descrição da CNAE": emp.princ.desc,
+        "Natureza Industrial": emp.princ.isIndustrial ? "SIM" : "NÃO",
+        "Sindicato Correspondente": emp.princ.sindicato,
+        "Situação": emp.princ.situacao,
+        "Regra / Base": emp.princ.regra
+      });
+
+      // Linhas das Secundárias na aba detalhada
+      emp.secs.forEach(sec => {
+        linhasDetalhadas.push({
+          "CNPJ": emp.cnpj,
+          "Razão Social": emp.razao,
+          "Município/UF": `${emp.municipio}/${emp.uf}`,
+          "Tipo de Atividade": "SECUNDÁRIA",
+          "CNAE": sec.cnae.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3"),
+          "Descrição da CNAE": sec.desc,
+          "Natureza Industrial": sec.isIndustrial ? "SIM" : "NÃO",
+          "Sindicato Correspondente": sec.sindicato,
+          "Situação": sec.situacao,
+          "Regra / Base": sec.regra
+        });
+      });
+    });
+
+    const wb = XLSX.utils.book_new();
+    const wsResumo = XLSX.utils.json_to_sheet(linhasResumo);
+    const wsDetalhes = XLSX.utils.json_to_sheet(linhasDetalhadas);
+
+    XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo Enquadramento");
+    XLSX.utils.book_append_sheet(wb, wsDetalhes, "Todos os CNAEs");
+
+    const dataAtual = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Triagem_Sindical_FIRJAN_${dataAtual}.xlsx`);
+  }
+  </script>
+</body>
+</html>
