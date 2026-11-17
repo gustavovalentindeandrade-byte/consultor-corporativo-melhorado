@@ -272,6 +272,38 @@
     return limpo.replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3");
   }
 
+  function formatarDataBr(dataStr) {
+    if (!dataStr) return "Não informada";
+    const limpa = String(dataStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(limpa)) {
+      const partes = limpa.substring(0, 10).split('-');
+      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return limpa;
+  }
+
+  function formatarMoedaBr(valor) {
+    if (valor === null || valor === undefined || valor === '') return "Não informado";
+    const num = Number(valor);
+    if (isNaN(num)) return String(valor);
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatarCepTexto(cep) {
+    const limpo = String(cep || '').replace(/\D/g, '');
+    if (limpo.length === 8) {
+      return limpo.replace(/^(\d{2})(\d{3})(\d{3})$/, "$1.$2-$3");
+    }
+    return cep || "Não informado";
+  }
+
+  function formatarTelefoneTexto(tel) {
+    const limpo = String(tel || '').replace(/\D/g, '');
+    if (limpo.length === 10) return limpo.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+    if (limpo.length === 11) return limpo.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+    return tel || "";
+  }
+
   // Bases Geográficas e Sindicais Oficiais do Estado do Rio de Janeiro (92 Municípios - Aba 'Abrangência dos Sindicatos')
   const REGIOES_RJ = {
     CAPITAL: ["RIODEJANEIRO"],
@@ -436,6 +468,174 @@
       sigla: objSind.sigla,
       nome: objSind.nome
     };
+  }
+
+  // Classificação oficial de Carteira e Macro Setor olhando sempre para o CNAE Principal
+  function classificarCarteiraEMacroSetor(cnae7, siglaSindicato) {
+    const cnae = String(cnae7 || '').replace(/\D/g, '').padStart(7, '0');
+    if (!cnae || cnae === '0000000') {
+      return { carteira: "-", macroSetor: "CNAE não industrial e não relacionado" };
+    }
+    const div2 = cnae.substring(0, 2);
+    const grp3 = cnae.substring(0, 3);
+    const cls4 = cnae.substring(0, 4);
+    const sigla = String(siglaSindicato || '').toUpperCase();
+
+    // 1. Carteiras específicas com Macro Setor "-"
+    if (cnae === "1066000" || sigla === "SINDIRAÇÕES") {
+      return { carteira: "Alimentação Animal", macroSetor: "-" };
+    }
+    if (/^(2092401|2092402|2550101|2550102|3041500|3042300|3050400|3292201|3292202)/.test(cnae) || sigla === "SIMDE") {
+      return { carteira: "Indústria de Defesa", macroSetor: "-" };
+    }
+    if (sigla === "SIND.AÇO") {
+      return { carteira: "Indústria do Aço", macroSetor: "-" };
+    }
+    if (cnae === "2122000" || sigla === "SINDAN") {
+      return { carteira: "Saúde Animal", macroSetor: "-" };
+    }
+    if (grp3 === "231" || sigla === "SINDIVIDROS") {
+      return { carteira: "Vidro", macroSetor: "-" };
+    }
+
+    // 2. Alimentos e Bebidas / Panificação
+    if (/^(1091101|1091102|4721102)/.test(cnae) || ["RIO+PÃO", "SINDPANIFIC", "SINDPÃES", "GRUPO ALIMENTA SUL RIO"].includes(sigla)) {
+      return { carteira: "Panificação", macroSetor: "Alimentos e Bebidas" };
+    }
+    if (div2 === "10" || div2 === "11") {
+      return { carteira: "Alimentos e Bebidas", macroSetor: "Alimentos e Bebidas" };
+    }
+
+    // 3. Audiovisual
+    if (/^(5911|5912|5913|5920|6022501)/.test(cnae) || sigla === "SICAV") {
+      return { carteira: "Audiovisual", macroSetor: "Audiovisual" };
+    }
+
+    // 4. Borracha e Plástico
+    if (grp3 === "221" || sigla === "SINDBORJ") {
+      return { carteira: "Borracha", macroSetor: "Borracha e Plástico (Borracha)" };
+    }
+    if (div2 === "22" || sigla === "SIMPERJ") {
+      return { carteira: "Plástico", macroSetor: "Borracha e Plástico (Plástico)" };
+    }
+
+    // 5. SIUP (Refrigeração de Ar / Energia)
+    if (/^(2823200|2824101|2824102|4322302)/.test(cnae) || sigla === "SINDRATAR") {
+      return { carteira: "Refrigeração de Ar", macroSetor: "SIUP" };
+    }
+    if (div2 === "35" || sigla === "SINERGIA") {
+      return { carteira: "Energia", macroSetor: "SIUP" };
+    }
+
+    // 6. Naval
+    if (/^(3011|3012|3317)/.test(cnae) || sigla === "SINAVAL") {
+      return { carteira: "Construção Naval", macroSetor: "Naval" };
+    }
+
+    // 7. Indústria de Transportes (Automotivo / Reparação)
+    if (/^(2831300|291|292|293|294|295|3031|3032|3091|3092|3099|3315)/.test(cnae) || ["SINFAVEA", "SINDIPEÇAS", "RODOFERRO"].includes(sigla)) {
+      return { carteira: "Automotivo", macroSetor: "Indústria de Transportes" };
+    }
+    if (cls4 === "4520" || sigla === "SINDIREPA RJ") {
+      return { carteira: "Reparação", macroSetor: "Indústria de Transportes" };
+    }
+
+    // 8. TIC
+    if (div2 === "26" || /^(3312101|3312102|3312103|3312104)/.test(cnae) || sigla === "SINDITEC") {
+      return { carteira: "TIC", macroSetor: "TIC" };
+    }
+
+    // 9. Químicos (Lavanderia, Cosmético, Farmacêutico, Fósforo, Velas e Sabão, Químico)
+    if (cls4 === "9601") {
+      return { carteira: "Lavanderia", macroSetor: "Químicos" };
+    }
+    if (cnae === "2063100" || sigla === "SIPATERJ") {
+      return { carteira: "Cosmético", macroSetor: "Químicos" };
+    }
+    if (div2 === "21" || sigla === "SINFAR") {
+      return { carteira: "Farmacêutico", macroSetor: "Químicos" };
+    }
+    if (cnae === "2092403" || sigla === "SNIFOS") {
+      return { carteira: "Fósforo", macroSetor: "Químicos" };
+    }
+    if (/^(2061400|2062200|3299006)/.test(cnae) || sigla === "SISAVERJ") {
+      return { carteira: "Velas e Sabão", macroSetor: "Químicos" };
+    }
+    if (div2 === "19" || div2 === "20") {
+      return { carteira: "Químico", macroSetor: "Químicos" };
+    }
+
+    // 10. Extrativista
+    if (["05", "06", "07", "08", "09"].includes(div2) || /^(2391501|2391502|2391503)/.test(cnae)) {
+      return { carteira: "Extrativista", macroSetor: "Extrativista" };
+    }
+
+    // 11. Construção Pesada e Civil
+    if (div2 === "41" || div2 === "42" || div2 === "43" || cnae === "7112000") {
+      return { carteira: "Construção Civil", macroSetor: "Construção Pesada e Civil" };
+    }
+
+    // 12. Diversos (Fumo)
+    if (div2 === "12" || sigla === "SINDIFUMO") {
+      return { carteira: "Tabaco", macroSetor: "Diversos (Fumo)" };
+    }
+
+    // 13. Editorial e Gráfica
+    if (div2 === "18" || grp3 === "581" || grp3 === "582") {
+      return { carteira: "Editorial | Gráfico", macroSetor: "Editorial e Gráfica" };
+    }
+
+    // 14. Madeira e Mobiliário
+    if (div2 === "16" || div2 === "31") {
+      return { carteira: "Madeira e Mobiliário", macroSetor: "Madeira e Mobiliário" };
+    }
+
+    // 15. Metal Mecânico & Serviços Complementares
+    if (/^(3316|3319|3329)/.test(cnae)) {
+      return { carteira: "-", macroSetor: "Diversos (Serviços Complementares)" };
+    }
+    if (["24", "25", "27", "28", "33"].includes(div2)) {
+      return { carteira: "Metal Mecânico", macroSetor: "Metal Mecânico" };
+    }
+
+    // 16. Minerais não Metálicos
+    if (cnae === "2341900" || sigla === "SIR - SINDREFRATARIO") {
+      return { carteira: "Refratário", macroSetor: "Minerais não Metálicos" };
+    }
+    if (div2 === "23") {
+      return { carteira: "-", macroSetor: "Minerais não Metálicos" };
+    }
+
+    // 17. Moda
+    if (["13", "14", "15"].includes(div2)) {
+      return { carteira: "Cadeia da Moda", macroSetor: "Moda" };
+    }
+
+    // 18. Papel e Papelão
+    if (grp3 === "171" || grp3 === "172" || sigla === "SINDICAPEL") {
+      return { carteira: "Papel", macroSetor: "Papel e Papelão" };
+    }
+    if (div2 === "17" || sigla === "SINPAPEL") {
+      return { carteira: "Artefatos de Papel", macroSetor: "Papel e Papelão" };
+    }
+
+    // 19. P&D
+    if (div2 === "72") {
+      return { carteira: "-", macroSetor: "P&D" };
+    }
+
+    // 20. Diversos (Outros)
+    if (div2 === "32") {
+      return { carteira: "-", macroSetor: "Diversos (Outros)" };
+    }
+
+    // 21. Diversos (Serviços Complementares)
+    if (["36", "37", "38", "39"].includes(div2)) {
+      return { carteira: "-", macroSetor: "Diversos (Serviços Complementares)" };
+    }
+
+    // 22. CNAE não industrial e não relacionado
+    return { carteira: "-", macroSetor: "CNAE não industrial e não relacionado" };
   }
 
   // CNAEs da aba 'Estrutura CNAE' classificadas como 'Fora do Perfil' (16 subclasses)
@@ -1135,6 +1335,12 @@
       ufNorm
     );
 
+    // Enquadramento de Carteira e Macro Setor olhando sempre para o CNAE Principal
+    const classificacaoSetorial = classificarCarteiraEMacroSetor(
+      avaliacaoPrincipal.cnae7,
+      avaliacaoPrincipal.sigla
+    );
+
     const listaSecundarios = Array.isArray(dadosApi.cnaes_secundarios)
       ? dadosApi.cnaes_secundarios.filter(c => c && c.codigo && Number(c.codigo) !== 0)
       : [];
@@ -1170,6 +1376,61 @@
     const possuiCnaeIndustrialSecundario = avaliacoesSecundarias.some(s => s.isIndustrial);
     const empresaPossuiPerfilIndustrial = avaliacaoPrincipal.isIndustrial || possuiCnaeIndustrialSecundario;
 
+    // Monta informações completas do Cartão CNPJ (Receita Federal)
+    const matrizFilial = dadosApi.descricao_identificador_matriz_filial
+      || (dadosApi.identificador_matriz_filial === 1 ? "MATRIZ" : (dadosApi.identificador_matriz_filial === 2 ? "FILIAL" : "Não informado"));
+
+    const naturezaJuridica = dadosApi.codigo_natureza_juridica && dadosApi.natureza_juridica
+      ? `${dadosApi.codigo_natureza_juridica} - ${dadosApi.natureza_juridica}`
+      : (dadosApi.natureza_juridica || "Não informada");
+
+    const logradouroCompleto = [dadosApi.descricao_tipo_de_logradouro, dadosApi.logradouro]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || "Não informado";
+
+    const tel1 = formatarTelefoneTexto(dadosApi.ddd_telefone_1);
+    const tel2 = formatarTelefoneTexto(dadosApi.ddd_telefone_2);
+    const telefones = [tel1, tel2].filter(Boolean).join(" / ") || "Não informado";
+
+    const listaQsa = Array.isArray(dadosApi.qsa)
+      ? dadosApi.qsa.map(s => {
+          const nome = s.nome_socio || s.nome || "Sócio não identificado";
+          const qual = s.qualificacao_socio || s.qualificacao_representante_legal || "Sócio";
+          return `${nome} (${qual})`;
+        })
+      : [];
+
+    const simplesTexto = dadosApi.opcao_pelo_simples === true
+      ? `Optante${dadosApi.data_opcao_pelo_simples ? ' desde ' + formatarDataBr(dadosApi.data_opcao_pelo_simples) : ''}`
+      : (dadosApi.opcao_pelo_simples === false ? "Não Optante" : "Não informado");
+
+    const meiTexto = dadosApi.opcao_pelo_mei === true
+      ? "Optante (MEI)"
+      : (dadosApi.opcao_pelo_mei === false ? "Não Optante" : "Não informado");
+
+    const cartaoCnpj = {
+      matrizFilial,
+      dataAbertura: formatarDataBr(dadosApi.data_inicio_atividade),
+      naturezaJuridica,
+      capitalSocial: formatarMoedaBr(dadosApi.capital_social),
+      logradouro: logradouroCompleto,
+      numero: dadosApi.numero || "S/N",
+      complemento: dadosApi.complemento || "-",
+      bairro: dadosApi.bairro || "Não informado",
+      cep: formatarCepTexto(dadosApi.cep),
+      email: dadosApi.email || "Não informado",
+      telefones,
+      efr: dadosApi.ente_federativo_responsavel || "********",
+      dataSituacaoCadastral: formatarDataBr(dadosApi.data_situacao_cadastral),
+      motivoSituacaoCadastral: dadosApi.descricao_motivo_situacao_cadastral || dadosApi.motivo_situacao_cadastral || "Sem motivo registrado",
+      situacaoEspecial: dadosApi.situacao_especial || "********",
+      dataSituacaoEspecial: dadosApi.data_situacao_especial ? formatarDataBr(dadosApi.data_situacao_especial) : "********",
+      simplesNacional: simplesTexto,
+      mei: meiTexto,
+      qsa: listaQsa.length > 0 ? listaQsa.join("; ") : "Não informado"
+    };
+
     return {
       cnpj: String(dadosApi.cnpj).replace(/\D/g, '').padStart(14, '0'),
       cnpjFormatado: formatarCnpjTexto(dadosApi.cnpj),
@@ -1180,6 +1441,9 @@
       municipio: dadosApi.municipio || "",
       uf: dadosApi.uf || "",
       principal: avaliacaoPrincipal,
+      carteira: classificacaoSetorial.carteira,
+      macroSetor: classificacaoSetorial.macroSetor,
+      cartaoCnpj,
       secundarios: avaliacoesSecundarias,
       sindicatosEnquadrados: Array.from(sindicatosUnicosMap.values()),
       empresaPossuiPerfilIndustrial
@@ -1229,15 +1493,42 @@
     const estab = raw.estabelecimento || {};
     const atvPrincipal = estab.atividade_principal || {};
     const atvsSecundarias = Array.isArray(estab.atividades_secundarias) ? estab.atividades_secundarias : [];
+    const simplesObj = raw.simples || {};
 
     const dadosNormalizados = {
       cnpj: cnpj14,
       razao_social: raw.razao_social || "",
       nome_fantasia: estab.nome_fantasia || "",
       descricao_situacao_cadastral: estab.situacao_cadastral || "ATIVA",
+      data_situacao_cadastral: estab.data_situacao_cadastral || "",
+      descricao_motivo_situacao_cadastral: (estab.motivo_situacao_cadastral && estab.motivo_situacao_cadastral.descricao) ? estab.motivo_situacao_cadastral.descricao : "",
+      situacao_especial: estab.situacao_especial || "",
+      data_situacao_especial: estab.data_situacao_especial || "",
+      data_inicio_atividade: estab.data_inicio_atividade || "",
+      descricao_identificador_matriz_filial: estab.tipo || "",
+      codigo_natureza_juridica: (raw.natureza_juridica && raw.natureza_juridica.id) ? raw.natureza_juridica.id : "",
+      natureza_juridica: (raw.natureza_juridica && raw.natureza_juridica.descricao) ? raw.natureza_juridica.descricao : "",
+      capital_social: raw.capital_social || "",
       porte: (raw.porte && raw.porte.descricao) ? raw.porte.descricao : "NÃO INFORMADO",
+      descricao_tipo_de_logradouro: estab.tipo_logradouro || "",
+      logradouro: estab.logradouro || "",
+      numero: estab.numero || "",
+      complemento: estab.complemento || "",
+      bairro: estab.bairro || "",
+      cep: estab.cep || "",
       municipio: (estab.cidade && estab.cidade.nome) ? estab.cidade.nome : "",
       uf: (estab.estado && estab.estado.sigla) ? estab.estado.sigla : "",
+      ddd_telefone_1: `${estab.ddd1 || ''}${estab.telefone1 || ''}`,
+      ddd_telefone_2: `${estab.ddd2 || ''}${estab.telefone2 || ''}`,
+      email: estab.email || "",
+      ente_federativo_responsavel: raw.responsavel_federativo || "",
+      opcao_pelo_simples: simplesObj.simples === "Sim" ? true : (simplesObj.simples === "Não" ? false : null),
+      data_opcao_pelo_simples: simplesObj.data_opcao_simples || "",
+      opcao_pelo_mei: simplesObj.mei === "Sim" ? true : (simplesObj.mei === "Não" ? false : null),
+      qsa: Array.isArray(raw.socios) ? raw.socios.map(s => ({
+        nome_socio: s.nome || "",
+        qualificacao_socio: (s.qualificacao_socio && s.qualificacao_socio.descricao) ? s.qualificacao_socio.descricao : "Sócio"
+      })) : [],
       cnae_fiscal: atvPrincipal.id || "",
       cnae_fiscal_descricao: atvPrincipal.descricao || "",
       cnaes_secundarios: atvsSecundarias.map(a => ({
@@ -1358,6 +1649,66 @@
       `;
     }
 
+    // Acordeão com os dados completos do Cartão CNPJ (Receita Federal)
+    const cc = emp.cartaoCnpj;
+    const htmlCartaoCnpj = `
+      <div class="accordion mt-3" id="accCartao_${indexCard}">
+        <div class="accordion-item border rounded-3 overflow-hidden">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCartao_${indexCard}">
+              <i class="fa-solid fa-id-card me-2 text-primary"></i>
+              Dados Completos do Cartão CNPJ (Receita Federal)
+            </button>
+          </h2>
+          <div id="collapseCartao_${indexCard}" class="accordion-collapse collapse" data-bs-parent="#accCartao_${indexCard}">
+            <div class="accordion-body p-3 bg-light small">
+              <div class="row g-2">
+                <div class="col-12 col-md-4"><strong>Nº de Inscrição:</strong> <span class="font-monospace">${escaparHtml(emp.cnpjFormatado)}</span></div>
+                <div class="col-12 col-md-4"><strong>Tipo (Matriz/Filial):</strong> ${escaparHtml(cc.matrizFilial)}</div>
+                <div class="col-12 col-md-4"><strong>Data de Abertura:</strong> ${escaparHtml(cc.dataAbertura)}</div>
+
+                <div class="col-12 col-md-6"><strong>Nome Empresarial:</strong> ${escaparHtml(emp.razaoSocial)}</div>
+                <div class="col-12 col-md-6"><strong>Nome Fantasia:</strong> ${escaparHtml(emp.nomeFantasia || '********')}</div>
+
+                <div class="col-12 col-md-4"><strong>Porte:</strong> ${escaparHtml(emp.porte)}</div>
+                <div class="col-12 col-md-4"><strong>Capital Social:</strong> ${escaparHtml(cc.capitalSocial)}</div>
+                <div class="col-12 col-md-4"><strong>Natureza Jurídica:</strong> ${escaparHtml(cc.naturezaJuridica)}</div>
+
+                <div class="col-12"><hr class="my-1 opacity-25"></div>
+
+                <div class="col-12 col-md-6"><strong>Logradouro:</strong> ${escaparHtml(cc.logradouro)}</div>
+                <div class="col-12 col-md-3"><strong>Número:</strong> ${escaparHtml(cc.numero)}</div>
+                <div class="col-12 col-md-3"><strong>Complemento:</strong> ${escaparHtml(cc.complemento)}</div>
+
+                <div class="col-12 col-md-3"><strong>CEP:</strong> ${escaparHtml(cc.cep)}</div>
+                <div class="col-12 col-md-4"><strong>Bairro/Distrito:</strong> ${escaparHtml(cc.bairro)}</div>
+                <div class="col-12 col-md-3"><strong>Município:</strong> ${escaparHtml(emp.municipio || 'Não informado')}</div>
+                <div class="col-12 col-md-2"><strong>UF:</strong> ${escaparHtml(emp.uf || '-')}</div>
+
+                <div class="col-12 col-md-6"><strong>Endereço Eletrônico (E-mail):</strong> ${escaparHtml(cc.email)}</div>
+                <div class="col-12 col-md-6"><strong>Telefone:</strong> ${escaparHtml(cc.telefones)}</div>
+
+                <div class="col-12"><hr class="my-1 opacity-25"></div>
+
+                <div class="col-12 col-md-4"><strong>Situação Cadastral:</strong> ${escaparHtml(emp.situacaoCadastral)}</div>
+                <div class="col-12 col-md-4"><strong>Data da Situação Cadastral:</strong> ${escaparHtml(cc.dataSituacaoCadastral)}</div>
+                <div class="col-12 col-md-4"><strong>Motivo Situação Cadastral:</strong> ${escaparHtml(cc.motivoSituacaoCadastral)}</div>
+
+                <div class="col-12 col-md-4"><strong>Ente Federativo Responsável (EFR):</strong> ${escaparHtml(cc.efr)}</div>
+                <div class="col-12 col-md-4"><strong>Situação Especial:</strong> ${escaparHtml(cc.situacaoEspecial)}</div>
+                <div class="col-12 col-md-4"><strong>Data Situação Especial:</strong> ${escaparHtml(cc.dataSituacaoEspecial)}</div>
+
+                <div class="col-12 col-md-6"><strong>Simples Nacional:</strong> ${escaparHtml(cc.simplesNacional)}</div>
+                <div class="col-12 col-md-6"><strong>MEI:</strong> ${escaparHtml(cc.mei)}</div>
+
+                <div class="col-12 mt-1"><strong>Quadro de Sócios e Administradores (QSA):</strong> ${escaparHtml(cc.qsa)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
     // Tabela de CNAEs secundários
     let htmlSecundarios = '';
     if (emp.secundarios.length > 0) {
@@ -1464,6 +1815,10 @@
               <div class="box-info-highlight">
                 <div class="small fw-bold text-uppercase text-primary"><i class="fa-solid fa-scale-balanced me-1"></i> Enquadramento Sindical FIRJAN</div>
                 <div class="sindicato-titulo">${escaparHtml(emp.principal.diagnostico)}</div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <span class="badge bg-primary text-white">Carteira: ${escaparHtml(emp.carteira)}</span>
+                  <span class="badge bg-dark text-white">Macro Setor: ${escaparHtml(emp.macroSetor)}</span>
+                </div>
                 <hr class="my-2 opacity-25">
                 <div class="small fw-bold text-secondary">Sindicatos Identificados no CNPJ (${emp.sindicatosEnquadrados.length}):</div>
                 ${htmlSindicatosConsolidados}
@@ -1471,6 +1826,7 @@
             </div>
           </div>
 
+          ${htmlCartaoCnpj}
           ${htmlSecundarios}
         </div>
       </div>
@@ -1559,15 +1915,34 @@
 
     const linhasResumo = ULTIMOS_RESULTADOS.map(emp => ({
       "CNPJ": emp.cnpjFormatado,
+      "Matriz/Filial": emp.cartaoCnpj.matrizFilial,
+      "Data de Abertura": emp.cartaoCnpj.dataAbertura,
       "Razão Social": emp.razaoSocial,
       "Nome Fantasia": emp.nomeFantasia,
-      "Situação": emp.situacaoCadastral,
+      "Porte": emp.porte,
+      "Natureza Jurídica": emp.cartaoCnpj.naturezaJuridica,
+      "Capital Social": emp.cartaoCnpj.capitalSocial,
+      "Situação Cadastral": emp.situacaoCadastral,
+      "Data Situação Cadastral": emp.cartaoCnpj.dataSituacaoCadastral,
+      "Motivo Situação": emp.cartaoCnpj.motivoSituacaoCadastral,
+      "Logradouro": emp.cartaoCnpj.logradouro,
+      "Número": emp.cartaoCnpj.numero,
+      "Complemento": emp.cartaoCnpj.complemento,
+      "Bairro": emp.cartaoCnpj.bairro,
+      "CEP": emp.cartaoCnpj.cep,
       "Município": emp.municipio,
       "UF": emp.uf,
+      "E-mail": emp.cartaoCnpj.email,
+      "Telefones": emp.cartaoCnpj.telefones,
+      "Simples Nacional": emp.cartaoCnpj.simplesNacional,
+      "MEI": emp.cartaoCnpj.mei,
+      "Sócios (QSA)": emp.cartaoCnpj.qsa,
       "CNAE Principal": emp.principal.cnaeFormatado,
       "Descrição da CNAE": emp.principal.descricao,
       "Tipo de negócio": emp.principal.tipoNegocio,
       "Tipo de associação FIRJAN": emp.principal.tipoAssociacao,
+      "Carteira": emp.carteira,
+      "Macro Setor": emp.macroSetor,
       "Resultado": emp.principal.diagnostico,
       "Todos Sindicatos no CNPJ": emp.sindicatosEnquadrados.map(s => s.sigla).join(" | ") || "Nenhum",
       "Qtd CNAEs Secundários": emp.secundarios.length
@@ -1580,6 +1955,8 @@
         "Razão Social": emp.razaoSocial,
         "Município": emp.municipio,
         "UF": emp.uf,
+        "Carteira (CNAE Principal)": emp.carteira,
+        "Macro Setor (CNAE Principal)": emp.macroSetor,
         "Tipo de CNAE": "PRINCIPAL",
         "Código CNAE": emp.principal.cnaeFormatado,
         "Descrição da CNAE": emp.principal.descricao,
@@ -1594,6 +1971,8 @@
           "Razão Social": emp.razaoSocial,
           "Município": emp.municipio,
           "UF": emp.uf,
+          "Carteira (CNAE Principal)": emp.carteira,
+          "Macro Setor (CNAE Principal)": emp.macroSetor,
           "Tipo de CNAE": "SECUNDÁRIO",
           "Código CNAE": sec.cnaeFormatado,
           "Descrição da CNAE": sec.descricao,
